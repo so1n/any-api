@@ -1,0 +1,31 @@
+[[package]]
+name = "pydantic"
+version = "1.9.2"
+description = "Data validation and settings management using python type hints"
+category = "main"
+optional = false
+python-versions = ">=3.6.1"
+
+[package.dependencies]
+typing-extensions = ">=3.7.4.3"
+
+[package.extras]
+email = ["email-validator (>=1.0.3)"]
+dotenv = ["python-dotenv (>=0.10.4)"]
+
+[[package]]
+name = "typing-extensions"
+version = "4.3.0"
+description = "Backported and Experimental Type Hints for Python 3.7+"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.7"
+content-hash = "2d347336cd02bad6cb6d7dd6cb08d92e52b5d94f94fee62179c5ae356c09c2f5"
+
+[metadata.files]
+pydantic = []
+typing-extensions = []
