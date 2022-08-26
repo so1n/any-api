@@ -1,12 +1,13 @@
-from typing import Dict, List, Optional, Type, Tuple
-from typing_extensions import Literal
+from typing import Dict, List, Optional, Type
+
 from pydantic import BaseModel, Field
+from typing_extensions import Literal
+
 from .openapi_model import TagModel
 from .response_model import BaseResponseModel
 
-
 HttpMethodLiteral = Literal["get", "post", "head", "options", "delete", "put", "trace", "patch"]
-HttpParamTypeLiteral = Literal["body", "cookie", "file", "form", "header", "path", "query"]
+HttpParamTypeLiteral = Literal["body", "cookie", "file", "form", "header", "path", "query", "multiform"]
 
 
 class RequestModel(BaseModel):
@@ -36,24 +37,23 @@ class InvokeModel(BaseModel):
             "Not all tags that are used by the Operation Object must be declared. "
             "The tags that are not declared MAY be organized randomly or based on the tools' logic. "
             "Each tag name in the list MUST be unique."
-        )
+        ),
     )
     deprecated: bool = Field(
         False,
         description=(
             "Declares this operation to be deprecated. Consumers SHOULD refrain from usage of the declared operation. "
-        )
+        ),
     )
     summary: str = Field(
-        "",
-        description="An optional, string summary, intended to apply to all operations in this path."
+        "", description="An optional, string summary, intended to apply to all operations in this path."
     )
     description: str = Field(
         "",
         description=(
             "An optional, string description, intended to apply to all operations in this path. "
             "CommonMark syntax MAY be used for rich text representation."
-        )
+        ),
     )
     operation_id: str = Field(
         description=(
@@ -63,9 +63,8 @@ class InvokeModel(BaseModel):
             "identify an operation, therefore, it is RECOMMENDED to follow common programming naming conventions."
         )
     )
-    request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(default_factory=dict)
-    response_list: Optional[List[Type[BaseResponseModel]]] = Field(None)
+    input_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(default_factory=dict)
+    output_list: List[Type[BaseResponseModel]] = Field(default_factory=list)
 
     def add_to_openapi_method_dict(self, openapi_method_dict: dict) -> None:
-        openapi_method_dict["deprecated"] = self.deprecated
-        openapi_method_dict["description"] = self.description
+        pass

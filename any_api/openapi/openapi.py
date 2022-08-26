@@ -1,12 +1,12 @@
 import copy
-import logging
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type, Set
+import logging
+from typing import Any, Dict, List, Optional, Tuple, Type
+
+from pydantic import BaseModel
 
 from any_api.openapi.model import openapi_model, request_model, response_model
 from any_api.util import by_pydantic
-from pydantic import BaseModel
-
 
 __all__ = ["OpenAPI"]
 
@@ -26,11 +26,11 @@ class OpenAPI(object):
         }
         self._add_tag_dict: dict = {}
 
-        self._openapi_model: openapi_model.OpenAPIModel = openapi_model.OpenAPIModel()
+        self._api_model: openapi_model.OpenAPIModel = openapi_model.OpenAPIModel()
         if openapi_info_model:
-            self._openapi_model.info = openapi_info_model
+            self._api_model.info = openapi_info_model
         if server_model_list:
-            self._openapi_model.servers = server_model_list
+            self._api_model.servers = server_model_list
         if tag_model_list:
             for tag_model in tag_model_list:
                 self._add_tag(tag_model)
@@ -43,19 +43,17 @@ class OpenAPI(object):
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
     ) -> "OpenAPI":
         return cls(
-            openapi_info_model=openapi_info_model,
-            server_model_list=server_model_list,
-            tag_model_list=tag_model_list
+            openapi_info_model=openapi_info_model, server_model_list=server_model_list, tag_model_list=tag_model_list
         )
 
     def _add_tag(self, tag: openapi_model.TagModel) -> None:
         if tag.name not in self._add_tag_dict:
             self._add_tag_dict[tag.name] = tag.description
+            self._api_model.tags.append(tag)
         elif tag.description != self._add_tag_dict[tag.name]:
             raise ValueError(
                 f"tag:{tag.name} already exists, but the description of the tag is inconsistent with the current one"
             )
-        self._openapi_model.tags.append(tag)
 
     def _replace_pydantic_definitions(self, schema: dict, parent_schema: Optional[dict] = None) -> None:
         """update schemas'definitions to components schemas"""
@@ -66,7 +64,7 @@ class OpenAPI(object):
                 index: int = value.rfind("/") + 1
                 model_key: str = value[index:]
                 schema[key] = f"#/components/schemas/{model_key}"
-                self._openapi_model.components["schemas"][model_key] = parent_schema["definitions"][model_key]
+                self._api_model.components["schemas"][model_key] = parent_schema["definitions"][model_key]
             elif isinstance(value, dict):
                 self._replace_pydantic_definitions(value, parent_schema)
             elif isinstance(value, list):
@@ -83,7 +81,7 @@ class OpenAPI(object):
             # fix del schema dict
             del schema_dict["definitions"]
         if enable_move_to_component:
-            self._openapi_model.components["schemas"].update({global_model_name: schema_dict})
+            self._api_model.components["schemas"].update({global_model_name: schema_dict})
         return global_model_name, schema_dict
 
     def _parameter_handle(
@@ -92,11 +90,11 @@ class OpenAPI(object):
         openapi_method_dict: dict,
         invoke_request_model: request_model.RequestModel,
     ) -> None:
-        invoke_schema: dict = invoke_request_model.model.schema()
-        self._schema_handle(invoke_request_model.model, enable_move_to_component=False)
+        _, schema_dict = self._schema_handle(invoke_request_model.model, enable_move_to_component=False)
         openapi_parameters_list: list = openapi_method_dict.setdefault("parameters", [])
-        for key, property_dict in invoke_schema["properties"].items():
+        for key, property_dict in schema_dict["properties"].items():
             description: str = property_dict.get("description", "") or ""
+            required: bool = key in property_dict.get("required", [])
             if param_type == "cookie":
                 description += (
                     " "
@@ -112,17 +110,15 @@ class OpenAPI(object):
                     "[SwaggerHub](https://swagger.io/tools/swaggerhub/)"
                     "does not have this limitation. "
                 )
+            elif param_type == "path" and not required:
+                raise ValueError("That path parameters must have required: true, because they are always required")
             openapi_parameters_list.append(
                 {
                     "name": key,
                     "in": param_type,
-                    "required": key in property_dict.get("required", []),
+                    "required": required,
                     "description": description,
-                    "schema": {
-                        k: v
-                        for k, v in property_dict.items()
-                        if k not in ("title", "description")
-                    }
+                    "schema": {k: v for k, v in property_dict.items() if k not in ("title", "description")},
                 }
             )
 
@@ -137,68 +133,100 @@ class OpenAPI(object):
         Doc: https://swagger.io/docs/specification/describing-request-body/
         """
         openapi_request_body_dict: dict = openapi_method_dict.setdefault("requestBody", {"content": {}})
-        invoke_schema: dict = invoke_request_model.model.schema()
-        global_model_name, schema_dict = self._schema_handle(invoke_request_model.model)
+        global_model_name, schema_dict = self._schema_handle(
+            invoke_request_model.model, enable_move_to_component=param_type != "multiform"
+        )
         media_type: str = invoke_request_model.media_type
 
-        if media_type in openapi_request_body_dict["content"]:
-            for key, value in openapi_request_body_dict["content"][media_type]["schema"].items():
-                if isinstance(value, list):
-                    value.extend(schema_dict[key])
-                elif isinstance(value, dict):
-                    value.update(schema_dict[key])
-        else:
-            openapi_request_body_dict["content"][media_type] = {"schema": schema_dict}
         if param_type == "multiform":
+            if media_type in openapi_request_body_dict["content"]:
+                for key, value in openapi_request_body_dict["content"][media_type]["schema"].items():
+                    if isinstance(value, list):
+                        value.extend(schema_dict[key])
+                    elif isinstance(value, dict):
+                        value.update(schema_dict[key])
+            else:
+                openapi_request_body_dict["content"][media_type] = {"schema": schema_dict}
             form_encoding_dict = openapi_request_body_dict["content"][media_type].setdefault("encoding", {})
-            if "multipart/form-data" not in openapi_request_body_dict["content"]:
-                print('aaa')
-                # openapi_request_body_dict["content"][media_type]["schema"]["properties"][
-                #     field_dict["raw"]["param_name"]
-                # ]["description"] += (
-                #     " " " " "\n" f">Swagger UI could not support, when media_type is multipart/form-data"
-                # )
-                # form_encoding_dict[field_dict["raw"]["param_name"]] = field_class.openapi_serialization
-            # TODO support payload?
-            # https://swagger.io/docs/specification/describing-request-body/
+            for key, property_dict in schema_dict["properties"].items():
+                if not invoke_request_model.openapi_serialization:
+                    raise ValueError(f"When param type is {param_type}, openapi serialization cannot be empty")
+                form_encoding_dict[key] = invoke_request_model.openapi_serialization
+                if "multipart/form-data" in openapi_request_body_dict["content"]:
+                    openapi_request_body_dict["content"][media_type]["schema"]["properties"][key][
+                        "description"
+                    ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
+        else:
+            if media_type in openapi_request_body_dict["content"]:
+                if "oneOf" not in openapi_request_body_dict["content"][media_type]["schema"]:
+                    openapi_request_body_dict["content"][media_type]["schema"]["oneOf"] = []
+                exist_ref_key: str = openapi_request_body_dict["content"][media_type]["schema"].pop("$ref", "")
+                if exist_ref_key:
+                    openapi_request_body_dict["content"][media_type]["schema"]["oneOf"].append({"$ref": exist_ref_key})
+                openapi_request_body_dict["content"][media_type]["schema"]["oneOf"].append(
+                    {"$ref": f"#/components/schemas/{global_model_name}"}
+                )
+            else:
+                openapi_request_body_dict["content"][media_type] = {
+                    "schema": {"$ref": f"#/components/schemas/{global_model_name}"}
+                }
+        # TODO support payload?
+        # https://swagger.io/docs/specification/describing-request-body/
 
     def _file_upload_handle(
-            self,
-            param_type: str,
-            openapi_method_dict: dict,
-            invoke_request_model: request_model.RequestModel,
+        self,
+        openapi_method_dict: dict,
+        invoke_request_model: request_model.RequestModel,
     ) -> None:
         """https://swagger.io/docs/specification/describing-request-body/file-upload/"""
         openapi_request_body_dict: dict = openapi_method_dict.setdefault("requestBody", {"content": {}})
-        pass
+        schema_dict: dict = invoke_request_model.model.schema()
+        media_type: str = invoke_request_model.media_type
+        required_column_list: List[str] = schema_dict.get("required", [])
+        properties_dict: dict = {
+            param_name: {"title": property_dict["title"], "type": "string", "format": "binary"}
+            for param_name, property_dict in schema_dict.get("properties", {}).items()
+        }
+        if invoke_request_model.media_type not in openapi_request_body_dict["content"]:
+            set_schema_dict: dict = {
+                "type": "object",
+                "properties": properties_dict,
+            }
+            if required_column_list:
+                set_schema_dict["required"] = required_column_list
+            openapi_request_body_dict["content"][media_type] = {"schema": set_schema_dict}
+        else:
+            openapi_request_body_dict["content"][media_type]["schema"]["properties"].update(properties_dict)
+            if required_column_list:
+                openapi_request_body_dict["content"][media_type]["schema"]["required"].extend(required_column_list)
 
-    def _request_handle(
+    def _input_handle(
         self,
         invoke_model: request_model.InvokeModel,
         openapi_method_dict: dict,
     ) -> None:
-        for param_type in request_model.HttpParamTypeLiteral.__args__:
-            request_model_list = invoke_model.request_dict.get(param_type, [])
+        for param_type in request_model.HttpParamTypeLiteral.__args__:  # type: ignore
+            request_model_list = invoke_model.input_dict.get(param_type, [])
             if not request_model_list:
                 continue
             for invoke_request_model in request_model_list:
                 if param_type in ("cookie", "header", "path", "query"):
                     self._parameter_handle(param_type, openapi_method_dict, invoke_request_model)
-                elif param_type in ("body", "form"):
+                elif param_type in ("body", "form", "multiform"):
                     if not invoke_request_model.media_type:
                         raise ValueError(f"Can not found {param_type} `model's media_type`")
                     self._body_handle(param_type, openapi_method_dict, invoke_request_model)
                 elif param_type in ("file",):
-                    self._file_upload_handle(param_type, openapi_method_dict, invoke_request_model)
+                    self._file_upload_handle(openapi_method_dict, invoke_request_model)
 
-    def _response_handle(
+    def _output_handle(
         self,
         invoke_model: request_model.InvokeModel,
         openapi_method_dict: dict,
     ) -> None:
         openapi_response_dict: dict = openapi_method_dict.setdefault("responses", {})
         response_schema_dict: Dict[tuple, List[Dict[str, str]]] = {}
-        for resp_model_class in invoke_model.response_list:
+        for resp_model_class in invoke_model.output_list:
             resp_model: response_model.BaseResponseModel = resp_model_class()
             global_model_name: str = ""
             if (
@@ -239,7 +267,7 @@ class OpenAPI(object):
                         raise ValueError(
                             f"{resp_model.media_type} already exists, "
                             f"Please check {invoke_model.operation_id}'s "
-                            f"response model list:{invoke_model.response_list}"
+                            f"response model list:{invoke_model.output_list}"
                         )
                     openapi_response_dict[_status_code]["content"][resp_model.media_type] = resp_model.openapi_schema
                 else:
@@ -258,25 +286,34 @@ class OpenAPI(object):
 
     @property
     def model(self) -> openapi_model.OpenAPIModel:
-        return self._openapi_model
+        return self._api_model
 
     @property
     def dict(self) -> dict:
-        return self._openapi_model.dict()
+        openapi_dict: dict = self._api_model.dict(exclude_none=True)
+        # if not openapi_dict["info"]["terms_of_service"]:
+        #     del openapi_dict["info"]["terms_of_service"]
+        #
+        # if not openapi_dict["info"]["content"]:
+        #     del openapi_dict["info"]["license"]
+        return openapi_dict
 
-    def content(self, type_: str = "json", **kwargs) -> str:
+    def content(self, type_: str = "json", **kwargs: Any) -> str:
         openapi_dict: dict = self.dict
         if type_ == "json":
             return json.dumps(openapi_dict, **kwargs)
         elif type_ == "yaml":
             try:
                 import yaml  # type: ignore
+
                 return yaml.dump(openapi_dict, **kwargs)
             except ImportError:
                 raise RuntimeError("Please install yaml")
+        else:
+            raise ValueError(f"Not supoprt type:{type_}")
 
     def add_invoke_model(self, invoke_model: request_model.InvokeModel) -> "OpenAPI":
-        openapi_path_dict: dict = self._openapi_model.paths.setdefault(invoke_model.path, {})
+        openapi_path_dict: dict = self._api_model.paths.setdefault(invoke_model.path, {})
         for http_method in invoke_model.http_method_list:
             openapi_method_dict: dict = openapi_path_dict.setdefault(http_method.lower(), {})
             if invoke_model.tags:
@@ -284,8 +321,12 @@ class OpenAPI(object):
                     self._add_tag(tag)
                 openapi_method_dict["tags"] = [tag.name for tag in invoke_model.tags]
             openapi_method_dict["operationId"] = f"{http_method}.{invoke_model.operation_id}"
-            if invoke_model.request_dict:
-                self._request_handle(invoke_model, openapi_method_dict)
-            if invoke_model.response_list:
-                self._response_handle(invoke_model, openapi_method_dict)
+            openapi_method_dict["deprecated"] = invoke_model.deprecated
+            openapi_method_dict["description"] = invoke_model.description
+            openapi_method_dict["summary"] = invoke_model.summary
+            invoke_model.add_to_openapi_method_dict(openapi_method_dict)
+            if invoke_model.input_dict:
+                self._input_handle(invoke_model, openapi_method_dict)
+            if invoke_model.output_list:
+                self._output_handle(invoke_model, openapi_method_dict)
         return self
