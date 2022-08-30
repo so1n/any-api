@@ -14,7 +14,7 @@ __all__ = ["OpenAPI"]
 class OpenAPI(object):
     def __init__(
         self,
-        openapi_info_model: Optional[openapi_model.OpenApiInfoModel] = None,
+        openapi_info_model: Optional[openapi_model.InfoModel] = None,
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
         # default_response: Optional[...] = None,  # TODO
@@ -38,7 +38,7 @@ class OpenAPI(object):
     @classmethod
     def build(
         cls,
-        openapi_info_model: Optional[openapi_model.OpenApiInfoModel] = None,
+        openapi_info_model: Optional[openapi_model.InfoModel] = None,
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
     ) -> "OpenAPI":
@@ -290,7 +290,7 @@ class OpenAPI(object):
 
     @property
     def dict(self) -> dict:
-        openapi_dict: dict = self._api_model.dict(exclude_none=True)
+        openapi_dict: dict = self._api_model.dict(exclude_none=True, by_alias=True)
         # if not openapi_dict["info"]["terms_of_service"]:
         #     del openapi_dict["info"]["terms_of_service"]
         #

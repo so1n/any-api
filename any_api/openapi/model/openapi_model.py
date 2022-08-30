@@ -3,9 +3,11 @@ from typing import Dict, List, Optional
 from pydantic import AnyUrl, BaseModel, Field, HttpUrl
 
 try:
-    from pydantic import EmailStr
+    pass
 except ImportError:
     EmailStr = str
+else:
+    from pydantic import EmailStr  # type: ignore
 
 
 class Contact(BaseModel):
@@ -21,7 +23,7 @@ class License(BaseModel):
     url: HttpUrl = Field(description="A URL to the license used for the API. MUST be in the format of a URL.")
 
 
-class OpenApiInfoModel(BaseModel):
+class InfoModel(BaseModel):
     """open api info column model"""
 
     title: str = Field("AnyApi", description="The title of the API.")
@@ -45,6 +47,22 @@ class OpenApiInfoModel(BaseModel):
     )
 
 
+class ServerVariableModel(BaseModel):
+    enum: List[str] = Field(
+        default_factory=list,
+        description="An enumeration of string values to be used if the substitution options are from a limited set.",
+    )
+    default: str = Field(
+        description="The default value to use for substitution, and to send, if an alternate value is not supplied."
+    )
+    description: str = Field(
+        description=(
+            "An optional description for the server variable. "
+            "CommonMark syntax MAY be used for rich text representation."
+        )
+    )
+
+
 class ServerModel(BaseModel):
     url: HttpUrl = Field(
         description=(
@@ -61,8 +79,18 @@ class ServerModel(BaseModel):
             " CommonMark syntax MAY be used for rich text representation."
         ),
     )
-    # TODO
-    # variables
+    variables: Dict[str, ServerVariableModel]
+
+
+class ExternalDocumentationModel(BaseModel):
+    description: str = Field(
+        default="",
+        description=(
+            "A short description of the target documentation. "
+            "CommonMark syntax MAY be used for rich text representation."
+        ),
+    )
+    url: str = Field(description="The URL for the target documentation. Value MUST be in the format of a URL.")
 
 
 class TagModel(BaseModel):
@@ -70,19 +98,23 @@ class TagModel(BaseModel):
     description: str = Field(
         "", description="A short description for the tag. CommonMark syntax MAY be used for rich text representation."
     )
+    external_docs: ExternalDocumentationModel = Field(
+        alias="externalDocs", default_factory=dict, description="Additional external documentation for this tag."
+    )
 
 
 class OpenAPIModel(BaseModel):
     openapi: str = Field(
         "3.0.0",
+        const=True,
         description=(
             "This string MUST be the semantic version number of the OpenAPI Specification version that the OpenAPI"
             " document uses. The openapi field SHOULD be used by tooling specifications and clients to interpret"
             " the OpenAPI document. This is not related to the API info.version string."
         ),
     )
-    info: OpenApiInfoModel = Field(
-        default_factory=OpenApiInfoModel,
+    info: InfoModel = Field(
+        default_factory=InfoModel,
         description="Provides metadata about the API. The metadata MAY be used by tooling as required.",
     )
     servers: List[ServerModel] = Field(
@@ -109,4 +141,6 @@ class OpenAPIModel(BaseModel):
     )
     # TODO
     # "security": {},
-    # "externalDocs": {}
+    external_docs: ExternalDocumentationModel = Field(
+        alias="externalDocs", default_factory=dict, description="Additional external documentation for this tag."
+    )
