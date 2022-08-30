@@ -65,7 +65,7 @@ class ServerModel(BaseModel):
     )
 
 
-class OpenAPIModel(BaseModel):
+class AsyncAPIModel(BaseModel):
     asyncapi: str = Field(
         "2.4.0",
         const=True,

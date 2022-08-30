@@ -1,22 +1,21 @@
-import copy
-import json
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
+from any_api.base_api.base_api import BaseAPI
 from any_api.openapi.model import openapi_model, request_model, response_model
-from any_api.util import by_pydantic
 
 __all__ = ["OpenAPI"]
 
 
-class OpenAPI(object):
+class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
     def __init__(
         self,
         openapi_info_model: Optional[openapi_model.InfoModel] = None,
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
+        external_docs: Optional[openapi_model.ExternalDocumentationModel] = None,
         # default_response: Optional[...] = None,  # TODO
     ):
         self._header_keyword_dict: Dict[str, str] = {
@@ -31,6 +30,8 @@ class OpenAPI(object):
             self._api_model.info = openapi_info_model
         if server_model_list:
             self._api_model.servers = server_model_list
+        if external_docs:
+            self._api_model.external_docs = external_docs
         if tag_model_list:
             for tag_model in tag_model_list:
                 self._add_tag(tag_model)
@@ -41,48 +42,14 @@ class OpenAPI(object):
         openapi_info_model: Optional[openapi_model.InfoModel] = None,
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
+        external_docs: Optional[openapi_model.ExternalDocumentationModel] = None,
     ) -> "OpenAPI":
         return cls(
-            openapi_info_model=openapi_info_model, server_model_list=server_model_list, tag_model_list=tag_model_list
+            openapi_info_model=openapi_info_model,
+            server_model_list=server_model_list,
+            tag_model_list=tag_model_list,
+            external_docs=external_docs,
         )
-
-    def _add_tag(self, tag: openapi_model.TagModel) -> None:
-        if tag.name not in self._add_tag_dict:
-            self._add_tag_dict[tag.name] = tag.description
-            self._api_model.tags.append(tag)
-        elif tag.description != self._add_tag_dict[tag.name]:
-            raise ValueError(
-                f"tag:{tag.name} already exists, but the description of the tag is inconsistent with the current one"
-            )
-
-    def _replace_pydantic_definitions(self, schema: dict, parent_schema: Optional[dict] = None) -> None:
-        """update schemas'definitions to components schemas"""
-        if not parent_schema:
-            parent_schema = schema
-        for key, value in schema.items():
-            if key == "$ref" and not value.startswith("#/components"):
-                index: int = value.rfind("/") + 1
-                model_key: str = value[index:]
-                schema[key] = f"#/components/schemas/{model_key}"
-                self._api_model.components["schemas"][model_key] = parent_schema["definitions"][model_key]
-            elif isinstance(value, dict):
-                self._replace_pydantic_definitions(value, parent_schema)
-            elif isinstance(value, list):
-                for item in value:
-                    if isinstance(item, dict):
-                        self._replace_pydantic_definitions(item, parent_schema)
-
-    def _schema_handle(self, model: Type[BaseModel], enable_move_to_component: bool = True) -> Tuple[str, dict]:
-        global_model_name = by_pydantic.get_model_global_name(model)
-
-        schema_dict: dict = copy.deepcopy(by_pydantic.any_api_model_schema(model))
-        self._replace_pydantic_definitions(schema_dict)
-        if "definitions" in schema_dict:
-            # fix del schema dict
-            del schema_dict["definitions"]
-        if enable_move_to_component:
-            self._api_model.components["schemas"].update({global_model_name: schema_dict})
-        return global_model_name, schema_dict
 
     def _parameter_handle(
         self,
@@ -283,34 +250,6 @@ class OpenAPI(object):
             else:
                 openapi_schema_dict = {"oneOf": path_list}
             openapi_response_dict[status_code]["content"] = {media_type: {"schema": openapi_schema_dict}}
-
-    @property
-    def model(self) -> openapi_model.OpenAPIModel:
-        return self._api_model
-
-    @property
-    def dict(self) -> dict:
-        openapi_dict: dict = self._api_model.dict(exclude_none=True, by_alias=True)
-        # if not openapi_dict["info"]["terms_of_service"]:
-        #     del openapi_dict["info"]["terms_of_service"]
-        #
-        # if not openapi_dict["info"]["content"]:
-        #     del openapi_dict["info"]["license"]
-        return openapi_dict
-
-    def content(self, type_: str = "json", **kwargs: Any) -> str:
-        openapi_dict: dict = self.dict
-        if type_ == "json":
-            return json.dumps(openapi_dict, **kwargs)
-        elif type_ == "yaml":
-            try:
-                import yaml  # type: ignore
-
-                return yaml.dump(openapi_dict, **kwargs)
-            except ImportError:
-                raise RuntimeError("Please install yaml")
-        else:
-            raise ValueError(f"Not supoprt type:{type_}")
 
     def add_invoke_model(self, invoke_model: request_model.InvokeModel) -> "OpenAPI":
         openapi_path_dict: dict = self._api_model.paths.setdefault(invoke_model.path, {})

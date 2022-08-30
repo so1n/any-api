@@ -3,7 +3,7 @@ from typing import Dict, List, Optional
 from pydantic import AnyUrl, BaseModel, Field, HttpUrl
 
 try:
-    pass
+    import email_validator  # isort: skip
 except ImportError:
     EmailStr = str
 else:
