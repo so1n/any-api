@@ -15,6 +15,7 @@ _ModelT = TypeVar("_ModelT", bound=BaseAPIModel)
 
 class BaseAPI(Generic[_ModelT]):
     _api_model: _ModelT
+    _schema_key: str = "schema"
     _add_tag_dict: dict = {}
 
     def _add_tag(self, tag: TagModel) -> None:
@@ -34,8 +35,8 @@ class BaseAPI(Generic[_ModelT]):
             if key == "$ref" and not value.startswith("#/components"):
                 index: int = value.rfind("/") + 1
                 model_key: str = value[index:]
-                schema[key] = f"#/components/schemas/{model_key}"
-                self._api_model.components["schemas"][model_key] = parent_schema["definitions"][model_key]
+                schema[key] = f"#/components/{self._schema_key}/{model_key}"
+                self._api_model.components[self._schema_key][model_key] = parent_schema["definitions"][model_key]
             elif isinstance(value, dict):
                 self._replace_pydantic_definitions(value, parent_schema)
             elif isinstance(value, list):
@@ -52,7 +53,7 @@ class BaseAPI(Generic[_ModelT]):
             # fix del schema dict
             del schema_dict["definitions"]
         if enable_move_to_component:
-            self._api_model.components["schemas"].update({global_model_name: schema_dict})
+            self._api_model.components[self._schema_key].update({global_model_name: schema_dict})
         return global_model_name, schema_dict
 
     @property

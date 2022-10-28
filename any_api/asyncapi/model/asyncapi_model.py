@@ -97,7 +97,7 @@ class AsyncAPIModel(BaseModel):
         alias="defaultContentType",
         description="Default content type to use when encoding/decoding a message's payload. eg.(application/json)",
     )
-    channel: Dict = Field(description="The available channels and messages for the API.")
+    channel: Dict = Field(default_factory=dict, description="The available channels and messages for the API.")
     tags: List[TagModel] = Field(
         default_factory=list,
         description=(
