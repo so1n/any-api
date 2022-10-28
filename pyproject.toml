@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "any-api"
-version = "0.0.0"
+version = "0.0.1"
 description = "Quick and easy to create OpenAPI/AsyncAPI, and provide corresponding extensions"
 authors = ["so1n <qaz6803609@163.com>"]
 license = "Apache-2.0"
