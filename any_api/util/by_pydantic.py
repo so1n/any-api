@@ -1,7 +1,5 @@
-from typing import Any, Callable, Dict, Optional
 from enum import Enum
-
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple, Type, Union
 
 from pydantic import create_model
 from pydantic.schema import (
@@ -144,7 +142,7 @@ def _example_value_handle(example_value: Any) -> Any:
 def gen_example_dict_from_schema(
     schema_dict: Dict[str, Any],
     definition_dict: Optional[dict] = None,
-    example_value_handle: Callable[[Any], Any] = _example_value_handle
+    example_value_handle: Callable[[Any], Any] = _example_value_handle,
 ) -> Dict[str, Any]:
     gen_dict: Dict[str, Any] = {}
     if "properties" not in schema_dict:

@@ -99,8 +99,8 @@ class UserSuccessRespModel(response_model.JsonResponseModel):
 
 
 def get_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/info",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -116,8 +116,8 @@ def get_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def cookie_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/extra-info",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -130,8 +130,8 @@ def cookie_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def file_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/upload-file",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -146,8 +146,8 @@ def file_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def form_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/info-form",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -164,8 +164,8 @@ def form_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def multiform_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/info-multiform",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -186,8 +186,8 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def post_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/borrow-book",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -206,8 +206,8 @@ def post_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
-    openapi.add_invoke_model(
-        request_model.InvokeModel(
+    openapi.add_api_model(
+        request_model.ApiModel(
             path="/api/user/borrow-book/v2",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],

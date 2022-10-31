@@ -15,7 +15,7 @@ _ModelT = TypeVar("_ModelT", bound=BaseAPIModel)
 
 class BaseAPI(Generic[_ModelT]):
     _api_model: _ModelT
-    _schema_key: str = "schema"
+    _schema_key: str = "schemas"
     _add_tag_dict: dict = {}
 
     def _add_tag(self, tag: TagModel) -> None:

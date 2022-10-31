@@ -1,8 +1,9 @@
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel
-from any_api.util.by_pydantic import gen_example_dict_from_schema
 
+from any_api.openapi.model import openapi_model
+from any_api.util.by_pydantic import gen_example_dict_from_schema
 
 __all__ = [
     "BaseResponseModel",
@@ -26,7 +27,7 @@ class BaseResponseModel(object):
     # response description
     description: Optional[str] = None
     # response header
-    header: dict = {}
+    header: Dict[str, openapi_model.HeaderModel] = {}
     # response status code
     status_code: Tuple[int] = (200,)
 
@@ -35,15 +36,15 @@ class BaseResponseModel(object):
     openapi_schema: Optional[dict] = None
 
     # links model
-    links_schema_dict: Dict[str, dict] = {}
+    links_model_dict: Dict[str, openapi_model.LinkModel] = {}
 
     @classmethod
     def get_example_value(cls, **extra: Any) -> Any:
         return cls.response_data
 
     @classmethod
-    def register_link_schema(cls, link_schema: dict) -> None:
-        cls.links_schema_dict.update(link_schema)
+    def register_link_schema(cls, link_model_dict: Dict[str, openapi_model.LinkModel]) -> None:
+        cls.links_model_dict.update(link_model_dict)
 
 
 class JsonResponseModel(BaseResponseModel):

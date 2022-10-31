@@ -1,7 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class BaseAPIModel(BaseModel):
     openapi: str
     tags: list
-    components: dict
+    components: dict = Field(default_factory=dict)

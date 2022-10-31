@@ -1,13 +1,10 @@
 from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
-from typing_extensions import Literal
 
-from .openapi_model import TagModel
+from .openapi_model import OperationModel, TagModel
 from .response_model import BaseResponseModel
-
-HttpMethodLiteral = Literal["get", "post", "head", "options", "delete", "put", "trace", "patch"]
-HttpParamTypeLiteral = Literal["body", "cookie", "file", "form", "header", "path", "query", "multiform"]
+from .util import HttpMethodLiteral, HttpParamTypeLiteral
 
 
 class RequestModel(BaseModel):
@@ -16,7 +13,7 @@ class RequestModel(BaseModel):
     model: Type[BaseModel] = Field(description="request model")
 
 
-class InvokeModel(BaseModel):
+class ApiModel(BaseModel):
     path: str = Field(
         description=(
             "A relative path to an individual endpoint. "
@@ -66,5 +63,5 @@ class InvokeModel(BaseModel):
     input_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(default_factory=dict)
     output_list: List[Type[BaseResponseModel]] = Field(default_factory=list)
 
-    def add_to_openapi_method_dict(self, openapi_method_dict: dict) -> None:
+    def add_to_openapi_method_dict(self, openapi_model: OperationModel) -> None:
         pass
