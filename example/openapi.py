@@ -233,3 +233,6 @@ if __name__ == "__main__":
     post_request_openapi_example(my_openapi)
     post_and_has_query_request_openapi_example(my_openapi)
     print(my_openapi.content())
+    from any_api.openapi.format.markdown import Markdown
+
+    print(Markdown(my_openapi).content)
