@@ -106,11 +106,11 @@ def get_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="get request demo",
             operation_id="get",
-            input_dict={
+            request_dict={
                 "query": [request_model.RequestModel(model=DemoUserDataModel)],
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -123,8 +123,8 @@ def cookie_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="cookie request demo",
             operation_id="cookie",
-            input_dict={"cookie": [request_model.RequestModel(model=HeaderModel)]},
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            request_dict={"cookie": [request_model.RequestModel(model=HeaderModel)]},
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -137,10 +137,10 @@ def file_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="file request demo",
             operation_id="file",
-            input_dict={
+            request_dict={
                 "file": [request_model.RequestModel(media_type="multipart/form-data", model=FileModel)],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -153,12 +153,12 @@ def form_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="form request demo",
             operation_id="form",
-            input_dict={
+            request_dict={
                 "form": [
                     request_model.RequestModel(media_type="application/x-www-form-urlencoded", model=DemoUserDataModel)
                 ],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -171,7 +171,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="multiform request demo",
             operation_id="multiform",
-            input_dict={
+            request_dict={
                 "multiform": [
                     request_model.RequestModel(
                         media_type="application/x-www-form-urlencoded",
@@ -180,7 +180,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
                     )
                 ],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -193,14 +193,14 @@ def post_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="post request demo",
             operation_id="post",
-            input_dict={
+            request_dict={
                 "body": [
                     request_model.RequestModel(media_type="application/json", model=DemoUserDataModel),
                     request_model.RequestModel(media_type="application/json", model=BookModel),
                 ],
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 
@@ -213,12 +213,12 @@ def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             operation_id="post_and_has_query",
             summary="post and has query request demo",
-            input_dict={
+            request_dict={
                 "query": [request_model.RequestModel(model=BookModel)],
                 "body": [request_model.RequestModel(media_type="application/json", model=DemoUserDataModel)],
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
-            output_list=[SimpleRespModel, UserSuccessRespModel],
+            response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
 

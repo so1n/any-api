@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Type
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 from .openapi_model import OperationModel, TagModel
 from .response_model import BaseResponseModel
@@ -25,7 +25,7 @@ class ApiModel(BaseModel):
             "identical. In case of ambiguous matching, it's up to the tooling to decide which one to use."
         )
     )
-    http_method_list: List[HttpMethodLiteral] = Field()
+    http_method_list: List[HttpMethodLiteral] = Field(description="HTTP Method")
     tags: List[TagModel] = Field(
         default_factory=list,
         description=(
@@ -60,8 +60,18 @@ class ApiModel(BaseModel):
             "identify an operation, therefore, it is RECOMMENDED to follow common programming naming conventions."
         )
     )
-    input_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(default_factory=dict)
-    output_list: List[Type[BaseResponseModel]] = Field(default_factory=list)
+    request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(
+        default_factory=dict, description="request parameter and request body dict"
+    )
+    response_list: List[Type[BaseResponseModel]] = Field(
+        default_factory=list, description="List of response object classes"
+    )
 
-    def add_to_openapi_method_dict(self, openapi_model: OperationModel) -> None:
+    @validator("response_list")
+    def validate_core_response(cls, response_list: List[Type[BaseResponseModel]]) -> List[Type[BaseResponseModel]]:
+        if len([i for i in response_list if i.is_core is True]) > 1:
+            raise ValueError("only one core response model")
+        return response_list
+
+    def add_to_operation_model(self, openapi_model: OperationModel) -> None:
         pass

@@ -65,11 +65,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             required: bool = key in schema_dict.get("required", [])
             if param_type == "cookie":
                 description += (
-                    " "
-                    "\n"
+                    " \n"
                     ">Note for Swagger UI and Swagger Editor users: "
-                    " "
-                    "\n"
+                    " \n"
                     ">Cookie authentication is"
                     'currently not supported for "try it out" requests due to browser security'
                     "restrictions. "
@@ -175,13 +173,13 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if required_column_list:
                 content_dict[media_type].schema_["required"].extend(required_column_list)
 
-    def _input_handle(
+    def _request_handle(
         self,
         api_model: request_model.ApiModel,
         operation_model: openapi_model.OperationModel,
     ) -> None:
         for param_type in any_api.openapi.model.util.HttpParamTypeLiteral.__args__:  # type: ignore
-            request_model_list = api_model.input_dict.get(param_type, [])
+            request_model_list = api_model.request_dict.get(param_type, [])
             if not request_model_list:
                 continue
             for api_request_model in request_model_list:
@@ -194,14 +192,14 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 elif param_type in ("file",):
                     self._file_upload_handle(operation_model, api_request_model)
 
-    def _output_handle(
+    def _response_handle(
         self,
         api_model: request_model.ApiModel,
         operation_model: openapi_model.OperationModel,
     ) -> None:
         response_schema_dict: Dict[tuple, List[Dict[str, str]]] = {}
         core_resp_model: Optional[response_model.BaseResponseModel] = None
-        for resp_model_class in api_model.output_list:
+        for resp_model_class in api_model.response_list:
             resp_model: response_model.BaseResponseModel = resp_model_class()
             if core_resp_model is None or core_resp_model.is_core:
                 core_resp_model = resp_model
@@ -248,7 +246,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                         raise ValueError(
                             f"{resp_model.media_type} already exists, "
                             f"Please check {api_model.operation_id}'s "
-                            f"response model list:{api_model.output_list}"
+                            f"response model list:{api_model.response_list}"
                         )
                     response.content[resp_model.media_type] = openapi_model.MediaTypeModel(
                         schema=resp_model.openapi_schema, example=resp_model.get_example_value()
@@ -270,7 +268,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             )
 
     def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
-        # openapi_path_dict: Dict[HttpMethodLiteral, dict]= self._api_model.paths.setdefault(api_model.path, {})
         path_dict: Dict[HttpMethodLiteral, openapi_model.OperationModel] = {}
         self._api_model.paths[api_model.path] = path_dict
         for http_method in api_model.http_method_list:
@@ -284,11 +281,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             operation_model.deprecated = api_model.deprecated
             operation_model.description = api_model.description
             operation_model.summary = api_model.summary
-            api_model.add_to_openapi_method_dict(operation_model)
+            api_model.add_to_operation_model(operation_model)
 
-            if api_model.input_dict:
-                self._input_handle(api_model, operation_model)
-            if api_model.output_list:
-                self._output_handle(api_model, operation_model)
+            if api_model.request_dict:
+                self._request_handle(api_model, operation_model)
+            if api_model.response_list:
+                self._response_handle(api_model, operation_model)
             path_dict[http_method] = operation_model
         return self
