@@ -37,13 +37,13 @@ class Markdown(object):
                 return self.gen_markdown_text()
 
     @staticmethod
-    def _gen_md_table(result: List[dict], ident: int = 0) -> str:
+    def _gen_md_table(result: List[dict], indent: int = 0) -> str:
         if not result:
             return ""
-        md_text = f"{ident * ' '} |" + "|".join(result[0].keys()) + "|\n"
-        md_text += f"{ident * ' '} |" + "|".join("---" for _ in result[0].keys()) + "|\n"
+        md_text = f"{indent * ' '} |" + "|".join(result[0].keys()) + "|\n"
+        md_text += f"{indent * ' '} |" + "|".join("---" for _ in result[0].keys()) + "|\n"
         for item in result:
-            md_text += f"{ident * ' '} |" + "|".join([str(i) for i in item.values()]) + "|\n"
+            md_text += f"{indent * ' '} |" + "|".join([str(i) for i in item.values()]) + "|\n"
         return md_text
 
     def get_schema_dict(self, schema_obj: Union[openapi_model.RefModel, dict]) -> dict:
@@ -74,32 +74,31 @@ class Markdown(object):
             parameter_list.extend(self.request_body_handle(schema["oneOf"][0]))
             return parameter_list
         for name, property_dict in schema["properties"].items():
+            name_prefix: str = nested * " "
+            if name_prefix:
+                name_prefix += "- "
+            if "allOf" in property_dict:
+                property_dict = self.get_schema_dict(property_dict["allOf"][0])
+            parameter_list.append(
+                {
+                    I18n.Name: name_prefix + name,
+                    I18n.Default: f"`{I18n.Required}`"
+                    if name in schema.get("required", [])
+                    else property_dict.get("default", ""),
+                    I18n.Type: property_dict.get("type", ""),
+                    I18n.Desc: property_dict.get("description", "").replace("\n", "<br>"),
+                    I18n.Example: property_dict.get("example", ""),
+                    I18n.Other: ";<br>".join(
+                        [
+                            f"{k}:{v}"
+                            for k, v in property_dict.items()
+                            if k not in ("title", "description", "example", "type", "default", "$ref")
+                        ]
+                    ),
+                }
+            )
             if "$ref" in property_dict:
                 parameter_list.extend(self.request_body_handle(property_dict, nested + 1))
-            else:
-                name_prefix: str = nested * " "
-                if name_prefix:
-                    name_prefix += "- "
-                if "allOf" in property_dict:
-                    property_dict = self.get_schema_dict(property_dict["allOf"][0])
-                parameter_list.append(
-                    {
-                        I18n.Name: name_prefix + property_dict["title"],
-                        I18n.Required: f"`{I18n.Required}`"
-                        if property_dict["title"] in schema.get("required", [])
-                        else "",
-                        I18n.Type: property_dict["type"],
-                        I18n.Desc: property_dict.get("description", ""),
-                        I18n.Example: property_dict.get("example", ""),
-                        I18n.Other: json.dumps(
-                            {
-                                k: v
-                                for k, v in property_dict.items()
-                                if k not in ("title", "description", "example", "type")
-                            }
-                        ),
-                    }
-                )
         return parameter_list
 
     def gen_head_info(self, http_method: str, path: str, operation_model: openapi_model.OperationModel) -> str:
@@ -109,7 +108,7 @@ class Markdown(object):
         if operation_model.description:
             md_text += f"    {operation_model.description}\n"
         if operation_model.tags:
-            md_text += f"**{I18n.Tag}**: {', '.join([t.name for t in operation_model.tags])}"
+            md_text += f"**{I18n.Tag}**: {', '.join(operation_model.tags)}"
         return md_text
 
     def gen_request_info(self, http_method: str, path: str, operation_model: openapi_model.OperationModel) -> str:
@@ -126,16 +125,19 @@ class Markdown(object):
                 parameter_dict[parameter.in_] = []
 
             schema = self.get_schema_dict(parameter.schema_)
-            parameter_dict[parameter.in_].append(
-                {
-                    I18n.Name: parameter.name,
-                    I18n.Required: f"`{I18n.Required}`" if parameter.required else "",
-                    I18n.Type: schema["type"],
-                    I18n.Desc: parameter.description,
-                    I18n.Example: parameter.example or "",
-                    I18n.Other: "",
-                }
-            )
+            if "properties" in schema:
+                parameter_dict[parameter.in_].extend(self.request_body_handle(parameter.schema_))
+            else:
+                parameter_dict[parameter.in_].append(
+                    {
+                        I18n.Name: parameter.name,
+                        I18n.Default: f"`{I18n.Required}`" if parameter.required else schema.get("default", ""),
+                        I18n.Type: schema["type"],
+                        I18n.Desc: parameter.description.replace("\n", "<br>"),
+                        I18n.Example: parameter.example or "",
+                        I18n.Other: "",
+                    }
+                )
         if operation_model.request_body:
             # body handle
             for content_type, media_model in operation_model.request_body.content.items():
@@ -143,8 +145,9 @@ class Markdown(object):
                     parameter_dict[content_type] = []
                 parameter_dict[content_type].extend(self.request_body_handle(media_model.schema_))
         for _param_name, _parameter_list in parameter_dict.items():
-            md_text += f"    *{_param_name}*\n\n"
-            md_text += self._gen_md_table(_parameter_list, ident=4)
+            md_text += f"    **{_param_name}**\n\n"
+            md_text += self._gen_md_table(_parameter_list, indent=4)
+            md_text += "\n"
 
         return md_text
 
@@ -152,17 +155,23 @@ class Markdown(object):
         md_text: str = ""
         md_text += f"- {I18n.Response}\n"
         for status_code, response_model in operation_model.responses.items():
-            md_text += f"*{I18n.Desc}*\n"
-            md_text += response_model.description + "\n"
+            md_text += f"**{I18n.Desc}**: {response_model.description}\n"
             if response_model.headers:
                 md_text += "*Header*\n\n"
                 self._gen_md_table([{"key": key, "value": value} for key, value in response_model.headers.items()])
             for content_type, media_type_model in response_model.content.items():
                 md_text += f"    - {status_code}:{content_type}\n"
-                md_text += f"    *{join_i18n([I18n.Response, I18n.Info])}*\n\n"
-                md_text += self._gen_md_table(self.request_body_handle(media_type_model.schema_), ident=4)
+                md_text += f"    **{join_i18n([I18n.Response, I18n.Info])}**\n\n"
+                md_text += self._gen_md_table(self.request_body_handle(media_type_model.schema_), indent=8)
+                md_text += "\n"
                 if media_type_model.example:
-                    md_text += f"```json\n{media_type_model.example}\n```"
+                    prefix: str = 8 * " "
+                    md_text += f"{prefix}**{join_i18n([I18n.Response, I18n.Example])}**\n\n"
+                    md_text += f"{prefix}```json\n"
+                    md_text += f"{prefix}" + f"\n{prefix}".join(
+                        json.dumps(media_type_model.example, indent=4).split("\n")
+                    )
+                    md_text += f"\n{prefix}```\n"
         return md_text
 
     def gen_tail_info(self, http_method: str, path: str, operation_model: openapi_model.OperationModel) -> str:

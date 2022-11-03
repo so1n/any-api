@@ -172,8 +172,8 @@ class HeaderModel(BaseModel):
             " a string value can contain the example with escaping where necessary."
         ),
     )
-    examples: Dict[str, Union[ExampleModel, RefModel]] = Field(
-        default_factory=dict,
+    examples: Optional[Dict[str, Union[ExampleModel, RefModel]]] = Field(
+        default=None,
         description=(
             "Examples of the parameter's potential value. Each example SHOULD contain a value in the correct format"
             " as specified in the parameter encoding. The examples field is mutually exclusive of the example field."
@@ -262,8 +262,8 @@ class MediaTypeModel(BaseModel):
             " a string value can contain the example with escaping where necessary."
         ),
     )
-    examples: Dict[str, Union[ExampleModel, RefModel]] = Field(
-        default_factory=dict,
+    examples: Optional[Dict[str, Union[ExampleModel, RefModel]]] = Field(
+        default=None,
         description=(
             "Examples of the parameter's potential value. Each example SHOULD contain a value in the correct format"
             " as specified in the parameter encoding. The examples field is mutually exclusive of the example field."
@@ -271,8 +271,8 @@ class MediaTypeModel(BaseModel):
             "the examples value SHALL override the example provided by the schema."
         ),
     )
-    encoding: Dict[str, EncodingModel] = Field(
-        default_factory=dict,
+    encoding: Optional[Dict[str, EncodingModel]] = Field(
+        default=None,
         description=(
             "A map between a property name and its encoding information. The key, being the property name, "
             "MUST exist in the schema as a property. The encoding object SHALL only apply to requestBody objects when"
@@ -362,8 +362,8 @@ class ResponseModel(BaseModel):
             " e.g. text/plain overrides text/*"
         ),
     )
-    links: Dict[str, Union[RefModel, LinkModel]] = Field(
-        default_factory=dict,
+    links: Optional[Dict[str, Union[RefModel, LinkModel]]] = Field(
+        default=None,
         description=(
             "A map of operations links that can be followed from the response. "
             "The key of the map is a short name for the link, following the naming constraints of the names for"
@@ -373,14 +373,11 @@ class ResponseModel(BaseModel):
 
 
 class OperationModel(BaseModel):
-    tags: List[TagModel] = Field(
+    tags: List[str] = Field(
         default_factory=list,
         description=(
-            "A list of tags used by the specification with additional metadata. "
-            "The order of the tags can be used to reflect on their order by the parsing tools. "
-            "Not all tags that are used by the Operation Object must be declared. "
-            "The tags that are not declared MAY be organized randomly or based on the tools' logic. "
-            "Each tag name in the list MUST be unique."
+            "A list of tags for API documentation control. "
+            "Tags can be used for logical grouping of operations by resources or any other qualifier."
         ),
     )
     summary: str = Field(default="", description="A short summary of what the operation does.")
@@ -443,8 +440,8 @@ class OperationModel(BaseModel):
     )
     # TODO
     # "security": {},
-    servers: List[ServerModel] = Field(
-        default_factory=list,
+    servers: Optional[List[ServerModel]] = Field(
+        default=None,
         description=(
             "An array of Server Objects, which provide connectivity information to a target server. "
             "If the servers property is not provided, or is an empty array, "

@@ -62,7 +62,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         _, schema_dict = self._schema_handle(api_request_model.model, enable_move_to_component=False)
         for key, property_dict in schema_dict["properties"].items():
             description: str = property_dict.get("description", "") or ""
-            required: bool = key in property_dict.get("required", [])
+            required: bool = key in schema_dict.get("required", [])
             if param_type == "cookie":
                 description += (
                     " "
@@ -122,7 +122,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             for key, property_dict in schema_dict["properties"].items():
                 if not api_request_model.openapi_serialization:
                     raise ValueError(f"When param type is {param_type}, openapi serialization cannot be empty")
-                content_dict[media_type].encoding[key] = openapi_model.EncodingModel(
+                if content_dict[media_type].encoding is None:
+                    content_dict[media_type].encoding = {}
+                content_dict[media_type].encoding[key] = openapi_model.EncodingModel(  # type: ignore
                     **api_request_model.openapi_serialization
                 )
                 if "multipart/form-data" in content_dict:
@@ -198,8 +200,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         operation_model: openapi_model.OperationModel,
     ) -> None:
         response_schema_dict: Dict[tuple, List[Dict[str, str]]] = {}
+        core_resp_model: Optional[response_model.BaseResponseModel] = None
         for resp_model_class in api_model.output_list:
             resp_model: response_model.BaseResponseModel = resp_model_class()
+            if core_resp_model is None or core_resp_model.is_core:
+                core_resp_model = resp_model
+
             global_model_name: str = ""
             if (
                 getattr(resp_model, "response_data", None)
@@ -245,7 +251,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                             f"response model list:{api_model.output_list}"
                         )
                     response.content[resp_model.media_type] = openapi_model.MediaTypeModel(
-                        schema=resp_model.openapi_schema
+                        schema=resp_model.openapi_schema, example=resp_model.get_example_value()
                     )
                 else:
                     logging.warning(
@@ -260,7 +266,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             else:
                 openapi_schema_dict = {"oneOf": path_list}
             operation_model.responses[status_code_str].content[media_type] = openapi_model.MediaTypeModel(
-                schema=openapi_schema_dict
+                schema=openapi_schema_dict, example=core_resp_model.get_example_value() if core_resp_model else None
             )
 
     def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
@@ -274,7 +280,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if api_model.tags:
                 for tag in api_model.tags:
                     self._add_tag(tag)
-                operation_model.tags = api_model.tags
+                operation_model.tags = [i.name for i in api_model.tags]
             operation_model.deprecated = api_model.deprecated
             operation_model.description = api_model.description
             operation_model.summary = api_model.summary
