@@ -5,6 +5,7 @@ from typing_extensions import TypedDict
 
 from any_api.openapi.model import openapi_model
 from any_api.openapi.openapi import OpenAPI
+from any_api.util.by_pydantic import gen_example_dict_from_schema
 from any_api.util.i18n import I18n, I18nContext, i18n_local, join_i18n
 
 
@@ -21,9 +22,11 @@ class Markdown(object):
     def __init__(
         self,
         openapi: OpenAPI,
+        use_html_details: bool = False,
         i18n_lang: str = i18n_local,
         i18n_class: Type[I18n] = I18n,
     ):
+        self._use_html_details: bool = use_html_details
         self._openapi: OpenAPI = openapi
         self._i18n_lang: str = i18n_lang
         self._i18n_class: Type[I18n] = i18n_class
@@ -51,6 +54,8 @@ class Markdown(object):
             key_list: List[str] = schema_obj.ref[2:].split("/")
         elif isinstance(schema_obj, dict) and "$ref" in schema_obj:
             key_list = schema_obj["$ref"][2:].split("/")
+        elif isinstance(schema_obj, dict) and "$ref" in schema_obj.get("items", {}):
+            key_list = schema_obj["items"]["$ref"][2:].split("/")
         else:
             key_list = []
 
@@ -92,7 +97,7 @@ class Markdown(object):
                         [
                             f"{k}:{v}"
                             for k, v in property_dict.items()
-                            if k not in ("title", "description", "example", "type", "default", "$ref")
+                            if k not in ("title", "description", "example", "type", "default", "$ref", "peoperties")
                         ]
                     ),
                 }
@@ -132,22 +137,40 @@ class Markdown(object):
                     {
                         I18n.Name: parameter.name,
                         I18n.Default: f"`{I18n.Required}`" if parameter.required else schema.get("default", ""),
-                        I18n.Type: schema["type"],
+                        I18n.Type: schema.get("type", ""),
                         I18n.Desc: parameter.description.replace("\n", "<br>"),
                         I18n.Example: parameter.example or "",
-                        I18n.Other: "",
+                        I18n.Other: ";<br>".join(
+                            [
+                                f"{k}:{v}"
+                                for k, v in schema.items()
+                                if k not in ("title", "description", "example", "type", "default", "$ref", "properties")
+                            ]
+                        ),
                     }
                 )
-        if operation_model.request_body:
-            # body handle
-            for content_type, media_model in operation_model.request_body.content.items():
-                if content_type not in parameter_dict:
-                    parameter_dict[content_type] = []
-                parameter_dict[content_type].extend(self.request_body_handle(media_model.schema_))
         for _param_name, _parameter_list in parameter_dict.items():
             md_text += f"    **{_param_name}**\n\n"
             md_text += self._gen_md_table(_parameter_list, indent=4)
             md_text += "\n"
+
+        # body handle
+        if operation_model.request_body:
+            for content_type, media_model in operation_model.request_body.content.items():
+                md_text += f"    **{content_type}**\n\n"
+                schema = self.get_schema_dict(media_model.schema_)
+                if "oneOf" in schema:
+                    for item in schema["oneOf"]:
+                        item_schema: dict = self.get_schema_dict(self.get_schema_dict(item))
+                        desc: str = item_schema.get("description", "")
+                        md_text += f"    **<details><summary>{item_schema['title']}</summary>**\n\n"
+                        if desc:
+                            md_text += f"    **{I18n.Desc}**:{desc}\n"
+                        md_text += self._gen_md_table(self.request_body_handle(schema), indent=4)
+                        md_text += "    </details>\n\n"
+                else:
+                    md_text += self._gen_md_table(self.request_body_handle(schema), indent=4)
+                    md_text += "\n"
 
         return md_text
 
@@ -162,16 +185,40 @@ class Markdown(object):
             for content_type, media_type_model in response_model.content.items():
                 md_text += f"    - {status_code}:{content_type}\n"
                 md_text += f"    **{join_i18n([I18n.Response, I18n.Info])}**\n\n"
-                md_text += self._gen_md_table(self.request_body_handle(media_type_model.schema_), indent=8)
-                md_text += "\n"
-                if media_type_model.example:
-                    prefix: str = 8 * " "
-                    md_text += f"{prefix}**{join_i18n([I18n.Response, I18n.Example])}**\n\n"
-                    md_text += f"{prefix}```json\n"
-                    md_text += f"{prefix}" + f"\n{prefix}".join(
-                        json.dumps(media_type_model.example, indent=4).split("\n")
+
+                indent: int = 8
+                prefix: str = indent * " "
+
+                def _add_md_text(_schema: dict) -> str:
+                    _md_text: str = ""
+                    _md_text += self._gen_md_table(self.request_body_handle(_schema), indent=indent)
+                    _md_text += "\n"
+                    _md_text += f"{prefix}**{join_i18n([I18n.Response, I18n.Example])}**\n\n"
+                    _md_text += f"{prefix}```json\n"
+                    _md_text += f"{prefix}" + f"\n{prefix}".join(
+                        json.dumps(
+                            gen_example_dict_from_schema(
+                                _schema, definition_dict=self._openapi.model.components["schemas"]
+                            ),
+                            indent=4,
+                        ).split("\n")
                     )
-                    md_text += f"\n{prefix}```\n"
+                    _md_text += f"\n{prefix}```\n"
+                    return _md_text
+
+                schema = self.get_schema_dict(media_type_model.schema_)
+                if "oneOf" in schema:
+                    for item in schema["oneOf"]:
+                        item_schema: dict = self.get_schema_dict(self.get_schema_dict(item))
+                        desc: str = item_schema.get("description", "")
+                        if desc:
+                            md_text += "(" + desc + ")"
+                        md_text += f"{prefix}<details><summary>{item_schema['title']}{desc}</summary>\n\n"
+
+                        md_text += _add_md_text(item_schema)
+                        md_text += f"{prefix}</details>\n\n"
+                else:
+                    md_text += _add_md_text(schema)
         return md_text
 
     def gen_tail_info(self, http_method: str, path: str, operation_model: openapi_model.OperationModel) -> str:

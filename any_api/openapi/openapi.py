@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel
 
@@ -53,12 +53,30 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             external_docs=external_docs,
         )
 
+    def _header_handle(self, model: BaseModel) -> Dict[str, openapi_model.HeaderModel]:
+        header_dict: Dict[str, openapi_model.HeaderModel] = {}
+        for key, value in model.schema()["properties"].items():
+            header_dict[key] = openapi_model.HeaderModel(
+                description=value.get("description", ""),
+                required=key in model.schema().get("required", []),
+                deprecated=value.get("deprecated", False),
+                example=value.get("example", None),
+                schema={
+                    k: v
+                    for k, v in value.items()
+                    if k not in ("title", "description", "required", "deprecated", "example")
+                },
+            )
+        return header_dict
+
     def _parameter_handle(
         self,
         param_type: str,
         operation_model: openapi_model.OperationModel,
         api_request_model: request_model.RequestModel,
     ) -> None:
+        if isinstance(api_request_model.model, tuple):
+            raise ValueError("parameter not support array model")
         _, schema_dict = self._schema_handle(api_request_model.model, enable_move_to_component=False)
         for key, property_dict in schema_dict["properties"].items():
             description: str = property_dict.get("description", "") or ""
@@ -100,49 +118,64 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         gen request body schema and update request body schemas'definitions to components schemas
         Doc: https://swagger.io/docs/specification/describing-request-body/
         """
-        global_model_name, schema_dict = self._schema_handle(
-            api_request_model.model, enable_move_to_component=param_type != "multiform"
-        )
-        media_type: str = api_request_model.media_type
-        if operation_model.request_body is None:
-            operation_model.request_body = openapi_model.RequestModel()
-        content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
-
-        if param_type == "multiform":
-            if media_type in content_dict:
-                for key, value in content_dict[media_type].schema_.items():
-                    if isinstance(value, list):
-                        value.extend(schema_dict[key])
-                    elif isinstance(value, dict):
-                        value.update(schema_dict[key])
-            else:
-                content_dict[media_type] = openapi_model.MediaTypeModel(schema=schema_dict)
-            for key, property_dict in schema_dict["properties"].items():
-                if not api_request_model.openapi_serialization:
-                    raise ValueError(f"When param type is {param_type}, openapi serialization cannot be empty")
-                if content_dict[media_type].encoding is None:
-                    content_dict[media_type].encoding = {}
-                content_dict[media_type].encoding[key] = openapi_model.EncodingModel(  # type: ignore
-                    **api_request_model.openapi_serialization
-                )
-                if "multipart/form-data" in content_dict:
-                    content_dict[media_type].schema_["properties"][key][
-                        "description"
-                    ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
+        request_body_is_array: bool = False
+        if isinstance(api_request_model.model, tuple):
+            request_body_model: Type[BaseModel] = api_request_model.model[0]
+            request_body_is_array = True
         else:
-            if media_type in content_dict:
-                if "oneOf" not in content_dict[media_type].schema_:
-                    content_dict[media_type].schema_["oneOf"] = []
-                exist_ref_key: str = content_dict[media_type].schema_.pop("$ref", "")
-                if exist_ref_key:
-                    content_dict[media_type].schema_["oneOf"].append({"$ref": exist_ref_key})
-                content_dict[media_type].schema_["oneOf"].append({"$ref": f"#/components/schemas/{global_model_name}"})
+            request_body_model = api_request_model.model
+        global_model_name, schema_dict = self._schema_handle(
+            request_body_model, enable_move_to_component=param_type != "multiform"
+        )
+        for media_type in api_request_model.media_type_list:
+            if operation_model.request_body is None:
+                operation_model.request_body = openapi_model.RequestModel()
+            content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
+
+            if param_type == "multiform":
+                if media_type in content_dict:
+                    for key, value in content_dict[media_type].schema_.items():
+                        if isinstance(value, list):
+                            value.extend(schema_dict[key])
+                        elif isinstance(value, dict):
+                            value.update(schema_dict[key])
+                else:
+                    content_dict[media_type] = openapi_model.MediaTypeModel(schema=schema_dict)
+                for key, property_dict in schema_dict["properties"].items():
+                    if not api_request_model.openapi_serialization:
+                        raise ValueError(f"When param type is {param_type}, openapi serialization cannot be empty")
+                    if content_dict[media_type].encoding is None:
+                        content_dict[media_type].encoding = {}
+                    content_dict[media_type].encoding[key] = openapi_model.EncodingModel(  # type: ignore
+                        **api_request_model.openapi_serialization
+                    )
+                    if "multipart/form-data" in content_dict:
+                        content_dict[media_type].schema_["properties"][key][
+                            "description"
+                        ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
             else:
-                content_dict[media_type] = openapi_model.MediaTypeModel(
-                    schema={"$ref": f"#/components/schemas/{global_model_name}"}
-                )
-        # TODO support payload?
-        # https://swagger.io/docs/specification/describing-request-body/
+                if media_type in content_dict:
+                    if request_body_is_array:
+                        raise ValueError("request body is array, not support multi diff request body")
+                    if "oneOf" not in content_dict[media_type].schema_:
+                        content_dict[media_type].schema_["oneOf"] = []
+                    exist_ref_key: str = content_dict[media_type].schema_.pop("$ref", "")
+                    if exist_ref_key:
+                        content_dict[media_type].schema_["oneOf"].append({"$ref": exist_ref_key})
+                    content_dict[media_type].schema_["oneOf"].append(
+                        {"$ref": f"#/components/schemas/{global_model_name}"}
+                    )
+                else:
+                    if request_body_is_array:
+                        content_dict[media_type] = openapi_model.MediaTypeModel(
+                            schema={"type": "array", "items": {"$ref": f"#/components/schemas/{global_model_name}"}}
+                        )
+                    else:
+                        content_dict[media_type] = openapi_model.MediaTypeModel(
+                            schema={"$ref": f"#/components/schemas/{global_model_name}"}
+                        )
+            # TODO support payload?
+            # https://swagger.io/docs/specification/describing-request-body/
 
     def _file_upload_handle(
         self,
@@ -150,28 +183,30 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         api_request_model: request_model.RequestModel,
     ) -> None:
         """https://swagger.io/docs/specification/describing-request-body/file-upload/"""
+        if isinstance(api_request_model.model, tuple):
+            raise ValueError("file body not support array model")
         if operation_model.request_body is None:
             operation_model.request_body = openapi_model.RequestModel()
         content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
         schema_dict: dict = api_request_model.model.schema()
-        media_type: str = api_request_model.media_type
-        required_column_list: List[str] = schema_dict.get("required", [])
-        properties_dict: dict = {
-            param_name: {"title": property_dict["title"], "type": "string", "format": "binary"}
-            for param_name, property_dict in schema_dict.get("properties", {}).items()
-        }
-        if api_request_model.media_type not in content_dict:
-            set_schema_dict: dict = {
-                "type": "object",
-                "properties": properties_dict,
+        for media_type in api_request_model.media_type_list:
+            required_column_list: List[str] = schema_dict.get("required", [])
+            properties_dict: dict = {
+                param_name: {"title": property_dict["title"], "type": "string", "format": "binary"}
+                for param_name, property_dict in schema_dict.get("properties", {}).items()
             }
-            if required_column_list:
-                set_schema_dict["required"] = required_column_list
-            content_dict[media_type] = openapi_model.MediaTypeModel(schema=set_schema_dict)
-        else:
-            content_dict[media_type].schema_["properties"].update(properties_dict)
-            if required_column_list:
-                content_dict[media_type].schema_["required"].extend(required_column_list)
+            if media_type not in content_dict:
+                set_schema_dict: dict = {
+                    "type": "object",
+                    "properties": properties_dict,
+                }
+                if required_column_list:
+                    set_schema_dict["required"] = required_column_list
+                content_dict[media_type] = openapi_model.MediaTypeModel(schema=set_schema_dict)
+            else:
+                content_dict[media_type].schema_["properties"].update(properties_dict)
+                if required_column_list:
+                    content_dict[media_type].schema_["required"].extend(required_column_list)
 
     def _request_handle(
         self,
@@ -186,7 +221,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 if param_type in ("cookie", "header", "path", "query"):
                     self._parameter_handle(param_type, operation_model, api_request_model)
                 elif param_type in ("body", "form", "multiform"):
-                    if not api_request_model.media_type:
+                    if not api_request_model.media_type_list:
                         raise ValueError(f"Can not found {param_type} `model's media_type`")
                     self._body_handle(param_type, operation_model, api_request_model)
                 elif param_type in ("file",):
@@ -211,18 +246,21 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 and issubclass(resp_model.response_data, BaseModel)
             ):
                 global_model_name, schema_dict = self._schema_handle(resp_model.response_data)
+                if resp_model.name is not None:
+                    schema_dict["title"] = resp_model.name
 
             for _status_code in resp_model.status_code:
                 status_code_str: str = str(_status_code)
                 key: tuple = (status_code_str, resp_model.media_type)
+                header_dict = self._header_handle(resp_model.header) if resp_model.header else {}
                 if status_code_str in operation_model.responses:
                     if resp_model.description:
                         operation_model.responses[status_code_str].description += f"|{resp_model.description}"
                     if resp_model.header:
-                        operation_model.responses[status_code_str].headers.update(resp_model.header)
+                        operation_model.responses[status_code_str].headers.update(header_dict)
                 else:
                     operation_model.responses[status_code_str] = openapi_model.ResponseModel(
-                        description=resp_model.description or "", headers=resp_model.header
+                        description=resp_model.description or "", headers=header_dict
                     )
 
                 if _status_code == 204:

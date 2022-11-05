@@ -25,12 +25,12 @@ class BaseResponseModel(object):
     # response media type
     media_type: str = "*/*"
 
-    # response name
+    # response name, if the value is empty, the name of the response_data object will be used
     name: Optional[str] = None
     # response description
     description: Optional[str] = None
     # response header
-    header: Dict[str, openapi_model.HeaderModel] = {}
+    header: Optional[BaseModel] = None
     # response status code
     status_code: Tuple[int] = (200,)
 
@@ -57,6 +57,10 @@ class JsonResponseModel(BaseResponseModel):
     @classmethod
     def get_example_value(cls, **extra: Any) -> dict:
         return gen_example_dict_from_schema(cls.response_data.schema())
+
+
+class XmlResponseModel(JsonResponseModel):
+    media_type: str = "application/xml"
 
 
 class TextResponseModel(BaseResponseModel):

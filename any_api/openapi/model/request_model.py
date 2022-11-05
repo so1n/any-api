@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, Field, validator
 
@@ -8,9 +8,9 @@ from .util import HttpMethodLiteral, HttpParamTypeLiteral
 
 
 class RequestModel(BaseModel):
-    media_type: str = Field("", description="OpenAPI media type")
+    media_type_list: List[str] = Field("", description="OpenAPI media type")
     openapi_serialization: Optional[dict] = Field(None, description="OpenAPI serialization")
-    model: Type[BaseModel] = Field(description="request model")
+    model: Union[Type[BaseModel], Tuple[Type[BaseModel]]] = Field(description="request model")
 
 
 class ApiModel(BaseModel):
@@ -66,6 +66,22 @@ class ApiModel(BaseModel):
     response_list: List[Type[BaseResponseModel]] = Field(
         default_factory=list, description="List of response object classes"
     )
+    security: Optional[List[Dict[str, List[str]]]] = Field(
+        default=None,
+        description=(
+            "Each name MUST correspond to a security scheme which is declared in the Security Schemes under the"
+            ' Components Object. If the security scheme is of type "oauth2" or "openIdConnect",'
+            " then the value is a list of scope names required for the execution, and the list MAY be empty "
+            "if authorization does not require a specified scope. For other security scheme types,"
+            " the array MUST be empty."
+        ),
+    )
+
+    @validator("path")
+    def validate_path(cls, path: str) -> str:
+        if not path.startswith("/"):
+            raise ValueError("path must start with `/`")
+        return path
 
     @validator("response_list")
     def validate_core_response(cls, response_list: List[Type[BaseResponseModel]]) -> List[Type[BaseResponseModel]]:

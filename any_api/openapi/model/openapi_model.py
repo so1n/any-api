@@ -5,7 +5,7 @@ refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.
 """
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, Field, HttpUrl
+from pydantic import AnyUrl, BaseModel, Field
 from typing_extensions import Literal
 
 try:
@@ -19,16 +19,18 @@ from .util import HttpMethodLiteral
 
 
 class Contact(BaseModel):
-    name: str = Field(description="The identifying name of the contact person/organization.")
-    url: AnyUrl = Field(description="The URL pointing to the contact information. MUST be in the format of a URL.")
+    name: str = Field(default="", description="The identifying name of the contact person/organization.")
+    url: AnyUrl = Field(
+        default="", description="The URL pointing to the contact information. MUST be in the format of a URL."
+    )
     email: EmailStr = Field(
-        description=("The email address of the contact person/organization. MUST be in the format of an email address.")
+        description="The email address of the contact person/organization. MUST be in the format of an email address."
     )
 
 
 class License(BaseModel):
     name: str = Field(description="The license name used for the API.")
-    url: HttpUrl = Field(description="A URL to the license used for the API. MUST be in the format of a URL.")
+    url: str = Field(description="A URL to the license used for the API. MUST be in the format of a URL.")
 
 
 class InfoModel(BaseModel):
@@ -39,7 +41,7 @@ class InfoModel(BaseModel):
         "API Documentation",
         description="A short description of the API. CommonMark syntax MAY be used for rich text representation.",
     )
-    terms_of_service: Optional[HttpUrl] = Field(
+    terms_of_service: Optional[str] = Field(
         None,
         alias="termsOfService",
         description="	A URL to the Terms of Service for the API. MUST be in the format of a URL.",
@@ -72,7 +74,7 @@ class ServerVariableModel(BaseModel):
 
 
 class ServerModel(BaseModel):
-    url: HttpUrl = Field(
+    url: str = Field(
         description=(
             "A URL to the target host. This URL supports Server Variables and MAY be relative, "
             "to indicate that the host location is relative to the location"
@@ -87,7 +89,7 @@ class ServerModel(BaseModel):
             " CommonMark syntax MAY be used for rich text representation."
         ),
     )
-    variables: Dict[str, ServerVariableModel]
+    variables: Optional[Dict[str, ServerVariableModel]] = Field(default=None)
 
 
 class ExternalDocumentationModel(BaseModel):
@@ -488,8 +490,16 @@ class OpenAPIModel(BaseModel):
     components: Dict = Field(
         default_factory=lambda: {"schemas": {}}, description="An element to hold various schemas for the specification."
     )
-    # TODO
-    # "security": {},
+    security: Optional[List[Dict[str, List[str]]]] = Field(
+        default=None,
+        description=(
+            "Each name MUST correspond to a security scheme which is declared in the Security Schemes under the"
+            ' Components Object. If the security scheme is of type "oauth2" or "openIdConnect",'
+            " then the value is a list of scope names required for the execution, and the list MAY be empty "
+            "if authorization does not require a specified scope. For other security scheme types,"
+            " the array MUST be empty."
+        ),
+    )
     external_docs: ExternalDocumentationModel = Field(
         alias="externalDocs", default_factory=dict, description="Additional external documentation for this tag."
     )
