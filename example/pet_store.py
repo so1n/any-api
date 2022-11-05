@@ -26,6 +26,7 @@ user_tag: openapi_model.TagModel = openapi_model.TagModel(
     description="Operations about user",
 )
 
+
 #########
 # model #
 #########
@@ -430,7 +431,9 @@ if __name__ == "__main__":
             http_method_list=["get"],
             tags=[store_tag],
             summary="Find purchase order by ID",
-            description="For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions.",
+            description=(
+                "For valid response try integer IDs with value <= 5 or > 10. Other values will generate exceptions."
+            ),
             operation_id="getOrderById",
             request_dict={
                 "path": [
@@ -460,7 +463,10 @@ if __name__ == "__main__":
             http_method_list=["delete"],
             tags=[store_tag],
             summary="Delete purchase order by ID",
-            description="For valid response try integer IDs with value < 1000. Anything above 1000 or nonintegers will generate API errors",
+            description=(
+                "For valid response try integer IDs with value < 1000. Anything above 1000 or nonintegers will"
+                " generate API errors"
+            ),
             operation_id="deleteOrder",
             request_dict={
                 "path": [
