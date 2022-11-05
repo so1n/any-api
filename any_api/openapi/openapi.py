@@ -18,6 +18,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
         external_docs: Optional[openapi_model.ExternalDocumentationModel] = None,
+        security_dict: Optional[Dict[str, openapi_model.SecurityModelType]] = None
         # default_response: Optional[...] = None,  # TODO
     ):
         self._header_keyword_dict: Dict[str, str] = {
@@ -34,6 +35,8 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             self._api_model.servers = server_model_list
         if external_docs:
             self._api_model.external_docs = external_docs
+        if security_dict:
+            self._api_model.components["securitySchemes"] = security_dict
         if tag_model_list:
             for tag_model in tag_model_list:
                 self._add_tag(tag_model)
@@ -118,6 +121,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         gen request body schema and update request body schemas'definitions to components schemas
         Doc: https://swagger.io/docs/specification/describing-request-body/
         """
+        if operation_model.request_body is None:
+            operation_model.request_body = openapi_model.RequestBodyModel(
+                required=api_request_model.required,
+                description=api_request_model.description or api_request_model.__doc__ or "",
+            )
+
         request_body_is_array: bool = False
         if isinstance(api_request_model.model, tuple):
             request_body_model: Type[BaseModel] = api_request_model.model[0]
@@ -128,8 +137,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             request_body_model, enable_move_to_component=param_type != "multiform"
         )
         for media_type in api_request_model.media_type_list:
-            if operation_model.request_body is None:
-                operation_model.request_body = openapi_model.RequestModel()
             content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
 
             if param_type == "multiform":
@@ -186,7 +193,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         if isinstance(api_request_model.model, tuple):
             raise ValueError("file body not support array model")
         if operation_model.request_body is None:
-            operation_model.request_body = openapi_model.RequestModel()
+            operation_model.request_body = openapi_model.RequestBodyModel()
         content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
         schema_dict: dict = api_request_model.model.schema()
         for media_type in api_request_model.media_type_list:
@@ -257,7 +264,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                     if resp_model.description:
                         operation_model.responses[status_code_str].description += f"|{resp_model.description}"
                     if resp_model.header:
-                        operation_model.responses[status_code_str].headers.update(header_dict)
+                        response_header_dict = operation_model.responses[status_code_str].headers or {}
+                        response_header_dict.update(header_dict)
+                        operation_model.responses[status_code_str].headers = response_header_dict
                 else:
                     operation_model.responses[status_code_str] = openapi_model.ResponseModel(
                         description=resp_model.description or "", headers=header_dict
@@ -280,6 +289,8 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                     else:
                         response_schema_dict[key] = [openapi_schema_dict]
                 elif resp_model.openapi_schema:
+                    if response.content is None:
+                        response.content = {}
                     if resp_model.media_type in response.content:
                         raise ValueError(
                             f"{resp_model.media_type} already exists, "
@@ -287,7 +298,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                             f"response model list:{api_model.response_list}"
                         )
                     response.content[resp_model.media_type] = openapi_model.MediaTypeModel(
-                        schema=resp_model.openapi_schema, example=resp_model.get_example_value()
+                        schema=resp_model.openapi_schema
                     )
                 else:
                     logging.warning(
@@ -301,24 +312,37 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 openapi_schema_dict = path_list[0]
             else:
                 openapi_schema_dict = {"oneOf": path_list}
-            operation_model.responses[status_code_str].content[media_type] = openapi_model.MediaTypeModel(
-                schema=openapi_schema_dict, example=core_resp_model.get_example_value() if core_resp_model else None
+
+            content_dict: Dict[str, openapi_model.MediaTypeModel] = (
+                operation_model.responses[status_code_str].content or {}
             )
+            content_dict[media_type] = openapi_model.MediaTypeModel(schema=openapi_schema_dict)
+            operation_model.responses[status_code_str].content = content_dict
 
     def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
         path_dict: Dict[HttpMethodLiteral, openapi_model.OperationModel] = {}
-        self._api_model.paths[api_model.path] = path_dict
+        if api_model.path not in self._api_model.paths:
+            self._api_model.paths[api_model.path] = path_dict
+        else:
+            path_dict = self._api_model.paths[api_model.path]
+
         for http_method in api_model.http_method_list:
+            if http_method in path_dict:
+                raise ValueError(f"{http_method} already exists in {api_model.path}")
+
             operation_model: openapi_model.OperationModel = openapi_model.OperationModel(
-                operationId=f"{http_method}.{api_model.operation_id}",
+                operationId=api_model.operation_id,
+                deprecated=api_model.deprecated,
+                description=api_model.description,
+                summary=api_model.summary,
+                security=api_model.security,
             )
             if api_model.tags:
                 for tag in api_model.tags:
                     self._add_tag(tag)
                 operation_model.tags = [i.name for i in api_model.tags]
-            operation_model.deprecated = api_model.deprecated
-            operation_model.description = api_model.description
-            operation_model.summary = api_model.summary
+            # TODO check security
+
             api_model.add_to_operation_model(operation_model)
 
             if api_model.request_dict:

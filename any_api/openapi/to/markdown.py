@@ -182,7 +182,7 @@ class Markdown(object):
             if response_model.headers:
                 md_text += "*Header*\n\n"
                 self._gen_md_table([{"key": key, "value": value} for key, value in response_model.headers.items()])
-            for content_type, media_type_model in response_model.content.items():
+            for content_type, media_type_model in (response_model.content or {}).items():
                 md_text += f"    - {status_code}:{content_type}\n"
                 md_text += f"    **{join_i18n([I18n.Response, I18n.Info])}**\n\n"
 

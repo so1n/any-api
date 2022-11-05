@@ -138,7 +138,7 @@ def file_request_openapi_example(openapi: OpenAPI) -> None:
             summary="file request demo",
             operation_id="file",
             request_dict={
-                "file": [request_model.RequestModel(media_type="multipart/form-data", model=FileModel)],
+                "file": [request_model.RequestModel(media_type_list=["multipart/form-data"], model=FileModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
@@ -155,7 +155,9 @@ def form_request_openapi_example(openapi: OpenAPI) -> None:
             operation_id="form",
             request_dict={
                 "form": [
-                    request_model.RequestModel(media_type="application/x-www-form-urlencoded", model=DemoUserDataModel)
+                    request_model.RequestModel(
+                        media_type_list=["application/x-www-form-urlencoded"], model=DemoUserDataModel
+                    )
                 ],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
@@ -174,7 +176,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
             request_dict={
                 "multiform": [
                     request_model.RequestModel(
-                        media_type="application/x-www-form-urlencoded",
+                        media_type_list=["application/x-www-form-urlencoded"],
                         openapi_serialization={"style": "form", "explode": True},
                         model=MultiFromModel,
                     )
@@ -195,8 +197,8 @@ def post_request_openapi_example(openapi: OpenAPI) -> None:
             operation_id="post",
             request_dict={
                 "body": [
-                    request_model.RequestModel(media_type="application/json", model=DemoUserDataModel),
-                    request_model.RequestModel(media_type="application/json", model=BookModel),
+                    request_model.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel),
+                    request_model.RequestModel(media_type_list=["application/json"], model=BookModel),
                 ],
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
@@ -215,7 +217,7 @@ def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
             summary="post and has query request demo",
             request_dict={
                 "query": [request_model.RequestModel(model=BookModel)],
-                "body": [request_model.RequestModel(media_type="application/json", model=DemoUserDataModel)],
+                "body": [request_model.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel)],
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],

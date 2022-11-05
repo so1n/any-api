@@ -5,7 +5,7 @@ refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.
 """
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, root_validator
 from typing_extensions import Literal
 
 try:
@@ -15,7 +15,7 @@ except ImportError:
 else:
     from pydantic import EmailStr  # type: ignore
 
-from .util import HttpMethodLiteral
+from .util import HttpMethodLiteral, SecurityHttpParamTypeLiteral, SecurityLiteral
 
 
 class Contact(BaseModel):
@@ -283,7 +283,7 @@ class MediaTypeModel(BaseModel):
     )
 
 
-class RequestModel(BaseModel):
+class RequestBodyModel(BaseModel):
     description: str = Field(
         default="",
         description=(
@@ -350,14 +350,15 @@ class ResponseModel(BaseModel):
             "CommonMark syntax MAY be used for rich text representation."
         )
     )
-    headers: Dict[str, Union[RefModel, HeaderModel]] = Field(
+    headers: Optional[Dict[str, Union[RefModel, HeaderModel]]] = Field(
+        default=None,
         description=(
             "Maps a header name to its definition. RFC7230 states header names are case insensitive. "
             'If a response header is defined with the name "Content-Type", it SHALL be ignored.'
-        )
+        ),
     )
-    content: Dict[str, MediaTypeModel] = Field(
-        default_factory=dict,
+    content: Optional[Dict[str, MediaTypeModel]] = Field(
+        default=None,
         description=(
             "REQUIRED. The content of the request body. The key is a media type or media type range and the value "
             "describes it. For requests that match multiple keys, only the most specific key is applicable."
@@ -411,7 +412,7 @@ class OperationModel(BaseModel):
             "components/parameters."
         ),
     )
-    request_body: Union[RefModel, RequestModel, None] = Field(
+    request_body: Union[RefModel, RequestBodyModel, None] = Field(
         default=None,
         alias="requestBody",
         description=(
@@ -440,8 +441,16 @@ class OperationModel(BaseModel):
             "Specifies that a parameter is deprecated and SHOULD be transitioned out of usage. Default value is false."
         ),
     )
-    # TODO
-    # "security": {},
+    security: Optional[List[Dict[str, List[str]]]] = Field(
+        default=None,
+        description=(
+            "Each name MUST correspond to a security scheme which is declared in the Security Schemes under the"
+            ' Components Object. If the security scheme is of type "oauth2" or "openIdConnect",'
+            " then the value is a list of scope names required for the execution, and the list MAY be empty "
+            "if authorization does not require a specified scope. For other security scheme types,"
+            " the array MUST be empty."
+        ),
+    )
     servers: Optional[List[ServerModel]] = Field(
         default=None,
         description=(
@@ -450,6 +459,143 @@ class OperationModel(BaseModel):
             "the default value would be a Server Object with a url value of /."
         ),
     )
+
+
+class OAuthFlowModel(BaseModel):
+    authorization_url: Optional[str] = Field(
+        default=None,
+        alias="authorizationUrl",
+        description="The authorization URL to be used for this flow. This MUST be in the form of a URL.",
+    )
+    token_url: Optional[str] = Field(
+        default=None,
+        alias="tokenUrl",
+        description="The token URL to be used for this flow. This MUST be in the form of a URL.",
+    )
+    refresh_url: Optional[str] = Field(
+        default=None,
+        alias="refreshUrl",
+        description="The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL.",
+    )
+    scopes: Dict[str, str] = Field(
+        description=(
+            "The available scopes for the OAuth2 security scheme. A map between the scope name and a short description"
+            " for it. The map MAY be empty."
+        )
+    )
+
+
+class OAuthFlowsModel(BaseModel):
+    implicit: Optional[OAuthFlowModel] = Field(default=None, description="Configuration for the OAuth Implicit flow")
+    password: Optional[OAuthFlowModel] = Field(
+        default=None, description="Configuration for the OAuth Resource Owner Password flow"
+    )
+    client_credentials: Optional[OAuthFlowModel] = Field(
+        alias="clientCredentials",
+        default=None,
+        description=(
+            "Configuration for the OAuth Client Credentials flow. Previously called application in OpenAPI 2.0."
+        ),
+    )
+    authorization_code: Optional[OAuthFlowModel] = Field(
+        alias="authorizationCode",
+        default=None,
+        description="Configuration for the OAuth Authorization Code flow. Previously called accessCode in OpenAPI 2.0.",
+    )
+
+    @root_validator(pre=True)
+    def check_include_model(cls, values: Dict[str, OAuthFlowModel]) -> Dict[str, OAuthFlowModel]:
+        for key, oauth_flow_model in values.items():
+            if key in ("implicit", "authorizationCode"):
+                if oauth_flow_model.authorization_url is None:
+                    raise ValueError(f"{key}->{oauth_flow_model.__class__.__name__}->`authorizationUrl` not be empty")
+            if key in ("authorizationCode", "password", "clientCredentials"):
+                if oauth_flow_model.token_url is None:
+                    raise ValueError(f"{key}->{oauth_flow_model.__class__.__name__}->`tokenUrl` not be empty")
+        return values
+
+
+class BaseSecurityModel(BaseModel):
+    # The value will be forced to be set
+    type_: SecurityLiteral = Field(
+        default=None,
+        alias="type",
+        description='The type of the security scheme. Valid values are "apiKey", "http", "oauth2", "openIdConnect".',
+    )
+    description: str = Field(
+        default="",
+        description=(
+            "A short description for security scheme. CommonMark syntax MAY be used for rich text representation."
+        ),
+    )
+
+
+class ApiKeySecurityModel(BaseSecurityModel):
+    name: str = Field(description="The name of the header, query or cookie parameter to be used.")
+    in_: SecurityHttpParamTypeLiteral = Field(
+        default="",
+        alias="in",
+        description=' The location of the API key. Valid values are "query", "header" or "cookie".',
+    )
+    in_stub: SecurityHttpParamTypeLiteral = Field(
+        description=(
+            "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
+        )
+    )
+
+    @root_validator(pre=True)
+    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values["type"] = "apiKey"
+        values["in"] = values["in_stub"]
+        return values
+
+
+class HttpSecurityModel(BaseSecurityModel):
+    scheme: str = Field(
+        description=(
+            "The name of the HTTP Authorization scheme to be used in the Authorization header as defined in RFC7235. "
+            "The values used SHOULD be registered in the IANA Authentication Scheme registry."
+        )
+    )
+    bearer_format: Optional[str] = Field(
+        default=None,
+        alias="bearerFormat",
+        description=(
+            "A hint to the client to identify how the bearer token is formatted. Bearer tokens are usually generated by"
+            " an authorization server, so this information is primarily for documentation purposes."
+        ),
+    )
+
+    @root_validator(pre=True)
+    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values["type"] = "http"
+        return values
+
+
+class Oauth2SecurityModel(BaseSecurityModel):
+    flows: OAuthFlowsModel = Field(
+        description="An object containing configuration information for the flow types supported."
+    )
+
+    @root_validator(pre=True)
+    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values["type"] = "oauth2"
+        return values
+
+
+class OpenIdConnectUrlSecurityModel(BaseSecurityModel):
+    open_id_connect_url: str = Field(
+        alias="openIdConnectUrl",
+        description="OpenId Connect URL to discover OAuth2 configuration values. This MUST be in the form of a URL.",
+    )
+
+    @root_validator(pre=True)
+    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values["type"] = "openIdConnect"
+        return values
+
+
+SecurityModelType = Union[ApiKeySecurityModel, HttpSecurityModel, Oauth2SecurityModel, OpenIdConnectUrlSecurityModel]
 
 
 class OpenAPIModel(BaseModel):
@@ -490,16 +636,17 @@ class OpenAPIModel(BaseModel):
     components: Dict = Field(
         default_factory=lambda: {"schemas": {}}, description="An element to hold various schemas for the specification."
     )
-    security: Optional[List[Dict[str, List[str]]]] = Field(
-        default=None,
-        description=(
-            "Each name MUST correspond to a security scheme which is declared in the Security Schemes under the"
-            ' Components Object. If the security scheme is of type "oauth2" or "openIdConnect",'
-            " then the value is a list of scope names required for the execution, and the list MAY be empty "
-            "if authorization does not require a specified scope. For other security scheme types,"
-            " the array MUST be empty."
-        ),
-    )
+    # This method will cover all, not flexible
+    # security: Optional[List[SecurityModel]] = Field(
+    #     default=None,
+    #     description=(
+    #         "A declaration of which security mechanisms can be used across the API. "
+    #         "The list of values includes alternative security requirement objects that can be used. "
+    #         "Only one of the security requirement objects need to be satisfied to authorize a request. "
+    #         "Individual operations can override this definition. "
+    #         "To make security optional, an empty security requirement ({}) can be included in the array."
+    #     ),
+    # )
     external_docs: ExternalDocumentationModel = Field(
         alias="externalDocs", default_factory=dict, description="Additional external documentation for this tag."
     )
