@@ -2,6 +2,7 @@ import logging
 from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel
+from typing_extensions import Literal
 
 import any_api.openapi.model.util
 from any_api.base_api.base_api import BaseAPI
@@ -74,7 +75,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
 
     def _parameter_handle(
         self,
-        param_type: str,
+        param_type: Literal["query", "header", "path", "cookie"],
         operation_model: openapi_model.OperationModel,
         api_request_model: request_model.RequestModel,
     ) -> None:
@@ -99,17 +100,18 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 )
             elif param_type == "path" and not required:
                 raise ValueError("That path parameters must have required: true, because they are always required")
-            operation_model.parameters.append(
+            parameters = operation_model.parameters or []
+            parameters.append(
                 openapi_model.ParameterModel(
-                    **{
-                        "name": key,
-                        "required": required,
-                        "description": description,
-                        "schema": {k: v for k, v in property_dict.items() if k not in ("title", "description")},
-                        "in": param_type,
-                    }
+                    name=key,
+                    required=required,
+                    description=description,
+                    schema={k: v for k, v in property_dict.items() if k not in ("title", "description", "explode")},
+                    in_stub=param_type,
+                    explode=property_dict.get("explode", False),
                 )
             )
+            operation_model.parameters = parameters
 
     def _body_handle(
         self,
@@ -241,6 +243,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
     ) -> None:
         response_schema_dict: Dict[tuple, List[Dict[str, str]]] = {}
         core_resp_model: Optional[response_model.BaseResponseModel] = None
+        responses = operation_model.responses
         for resp_model_class in api_model.response_list:
             resp_model: response_model.BaseResponseModel = resp_model_class()
             if core_resp_model is None or core_resp_model.is_core:
@@ -260,16 +263,16 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 status_code_str: str = str(_status_code)
                 key: tuple = (status_code_str, resp_model.media_type)
                 header_dict = self._header_handle(resp_model.header) if resp_model.header else {}
-                if status_code_str in operation_model.responses:
+                if status_code_str in responses:
                     if resp_model.description:
-                        operation_model.responses[status_code_str].description += f"|{resp_model.description}"
+                        responses[status_code_str].description += f"|{resp_model.description}"
                     if resp_model.header:
-                        response_header_dict = operation_model.responses[status_code_str].headers or {}
+                        response_header_dict = responses[status_code_str].headers or {}
                         response_header_dict.update(header_dict)
-                        operation_model.responses[status_code_str].headers = response_header_dict
+                        responses[status_code_str].headers = response_header_dict or None
                 else:
-                    operation_model.responses[status_code_str] = openapi_model.ResponseModel(
-                        description=resp_model.description or "", headers=header_dict
+                    responses[status_code_str] = openapi_model.ResponseModel(
+                        description=resp_model.description or "", headers=header_dict or None
                     )
 
                 if _status_code == 204:
@@ -277,7 +280,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                     # To indicate the response body is empty, do not specify a content for the response
                     continue
 
-                response: openapi_model.ResponseModel = operation_model.responses[status_code_str]
+                response: openapi_model.ResponseModel = responses[status_code_str]
 
                 if resp_model.links_model_dict:
                     response.links = resp_model.links_model_dict
@@ -313,11 +316,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             else:
                 openapi_schema_dict = {"oneOf": path_list}
 
-            content_dict: Dict[str, openapi_model.MediaTypeModel] = (
-                operation_model.responses[status_code_str].content or {}
-            )
+            content_dict: Dict[str, openapi_model.MediaTypeModel] = responses[status_code_str].content or {}
             content_dict[media_type] = openapi_model.MediaTypeModel(schema=openapi_schema_dict)
-            operation_model.responses[status_code_str].content = content_dict
+            responses[status_code_str].content = content_dict
+        operation_model.responses = responses
 
     def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
         path_dict: Dict[HttpMethodLiteral, openapi_model.OperationModel] = {}

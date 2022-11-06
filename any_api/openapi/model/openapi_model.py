@@ -188,6 +188,14 @@ class HeaderModel(BaseModel):
         # Do not create model the schema, facilitate subsequent expansion
         description="The schema defining the type used for the parameter.",
     )
+    explode: bool = Field(
+        default=False,
+        description=(
+            "When this is true, parameter values of type array or object generate separate parameters for each value "
+            "of the array or key-value pair of the map. For other types of parameters this property has no effect. "
+            "When style is form, the default value is true. For all other styles, the default value is false."
+        ),
+    )
 
 
 class ParameterModel(HeaderModel):
@@ -202,9 +210,23 @@ class ParameterModel(HeaderModel):
         )
     )
     in_: Literal["query", "header", "path", "cookie"] = Field(
+        default="",
         alias="in",
         description='The location of the parameter. Possible values are "query", "header", "path" or "cookie".',
     )
+    in_stub: Literal["query", "header", "path", "cookie"] = Field(
+        description=(
+            "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
+        )
+    )
+
+    class Config:
+        fields = {"in_stub": {"exclude": True}}
+
+    @root_validator(pre=True)
+    def set_in(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        values["in"] = values["in_stub"]
+        return values
 
 
 class EncodingModel(BaseModel):
@@ -402,8 +424,8 @@ class OperationModel(BaseModel):
             " identify an operation, therefore, it is RECOMMENDED to follow common programming naming conventions."
         ),
     )
-    parameters: List[Union[RefModel, ParameterModel]] = Field(
-        default_factory=list,
+    parameters: Optional[List[Union[RefModel, ParameterModel]]] = Field(
+        default=None,
         description=(
             "A list of parameters that are applicable for this operation. If a parameter is already defined at the "
             "Path Item, the new definition will override it but can never remove it. The list MUST NOT include"
@@ -542,6 +564,9 @@ class ApiKeySecurityModel(BaseSecurityModel):
             "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
         )
     )
+
+    class Config:
+        fields = {"in_stub": {"exclude": True}}
 
     @root_validator(pre=True)
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:

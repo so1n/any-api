@@ -122,7 +122,7 @@ class Markdown(object):
         md_text += f"- {I18n.Method}: {http_method}\n"
         md_text += f"- {I18n.Request}:\n"
         # parameter handle
-        parameter_list: List[openapi_model.ParameterModel] = operation_model.parameters
+        parameter_list: List[openapi_model.ParameterModel] = operation_model.parameters or []
         parameter_list.sort(key=lambda x: x.in_)
         parameter_dict: Dict[str, List[dict]] = {}
         for parameter in parameter_list:
