@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Union
 from pydantic import AnyUrl, BaseModel, Field, root_validator
 from typing_extensions import Literal
 
+from any_api.base_api.model.base_api_model import BaseSecurityModel
+
 try:
     import email_validator  # isort: skip
 except ImportError:
@@ -15,7 +17,7 @@ except ImportError:
 else:
     from pydantic import EmailStr  # type: ignore
 
-from .util import HttpMethodLiteral, SecurityHttpParamTypeLiteral, SecurityLiteral
+from .util import HttpMethodLiteral, SecurityHttpParamTypeLiteral
 
 
 class Contact(BaseModel):
@@ -537,21 +539,6 @@ class OAuthFlowsModel(BaseModel):
         return values
 
 
-class BaseSecurityModel(BaseModel):
-    # The value will be forced to be set
-    type_: SecurityLiteral = Field(
-        default=None,
-        alias="type",
-        description='The type of the security scheme. Valid values are "apiKey", "http", "oauth2", "openIdConnect".',
-    )
-    description: str = Field(
-        default="",
-        description=(
-            "A short description for security scheme. CommonMark syntax MAY be used for rich text representation."
-        ),
-    )
-
-
 class ApiKeySecurityModel(BaseSecurityModel):
     name: str = Field(description="The name of the header, query or cookie parameter to be used.")
     in_: SecurityHttpParamTypeLiteral = Field(
@@ -570,6 +557,7 @@ class ApiKeySecurityModel(BaseSecurityModel):
 
     @root_validator(pre=True)
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        print(cls, values)
         values["type"] = "apiKey"
         values["in"] = values["in_stub"]
         return values
@@ -606,6 +594,21 @@ class Oauth2SecurityModel(BaseSecurityModel):
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["type"] = "oauth2"
         return values
+
+    def get_security_scope(self) -> List[str]:
+        scope_list: List[str] = []
+        if self.flows.authorization_code:
+            scope_list.extend(self.flows.authorization_code.scopes.keys())
+
+        if self.flows.client_credentials:
+            scope_list.extend(self.flows.client_credentials.scopes.keys())
+
+        if self.flows.implicit:
+            scope_list.extend(self.flows.implicit.scopes.keys())
+
+        if self.flows.password:
+            scope_list.extend(self.flows.password.scopes.keys())
+        return scope_list
 
 
 class OpenIdConnectUrlSecurityModel(BaseSecurityModel):

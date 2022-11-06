@@ -1,10 +1,10 @@
 import copy
 import json
-from typing import Any, Generic, Optional, Tuple, Type, TypeVar
+from typing import Any, Dict, Generic, Optional, Tuple, Type, TypeVar
 
 from pydantic import BaseModel
 
-from any_api.base_api.model.base_api_model import BaseAPIModel
+from any_api.base_api.model.base_api_model import BaseAPIModel, BaseSecurityModel
 from any_api.openapi.model.openapi_model import TagModel
 from any_api.util import by_pydantic
 
@@ -18,14 +18,27 @@ class BaseAPI(Generic[_ModelT]):
     _schema_key: str = "schemas"
     _add_tag_dict: dict = {}
 
-    def _add_tag(self, tag: TagModel) -> None:
-        if tag.name not in self._add_tag_dict:
-            self._add_tag_dict[tag.name] = tag.description
-            self._api_model.tags.append(tag)
-        elif tag.description != self._add_tag_dict[tag.name]:
-            raise ValueError(
-                f"tag:{tag.name} already exists, but the description of the tag is inconsistent with the current one"
-            )
+    def _add_tag(self, *tag_list: TagModel) -> None:
+        for tag in tag_list:
+            if tag.name not in self._add_tag_dict:
+                self._add_tag_dict[tag.name] = tag.description
+                self._api_model.tags.append(tag)
+            elif tag.description != self._add_tag_dict[tag.name]:
+                raise ValueError(
+                    f"tag:{tag.name} already exists, but the description of the tag is inconsistent"
+                    f" with the current one"
+                )
+
+    def _add_security(self, security_model_dict: Dict[str, BaseSecurityModel]) -> None:
+        if "securitySchemes" not in self._api_model.components:
+            self._api_model.components["securitySchemes"] = security_model_dict
+        else:
+            for security_key, security_model in security_model_dict.items():
+                if security_key in self._api_model.components["securitySchemes"]:
+                    if self._api_model.components["securitySchemes"][security_key] != security_model:
+                        raise KeyError(f"{security_key}already exists, and the security model is the same")
+                else:
+                    self._api_model.components["securitySchemes"][security_key] = security_model
 
     def _replace_pydantic_definitions(self, schema: dict, parent_schema: Optional[dict] = None) -> None:
         """update schemas'definitions to components schemas"""

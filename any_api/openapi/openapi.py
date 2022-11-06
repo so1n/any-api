@@ -331,18 +331,19 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         for http_method in api_model.http_method_list:
             if http_method in path_dict:
                 raise ValueError(f"{http_method} already exists in {api_model.path}")
-
             operation_model: openapi_model.OperationModel = openapi_model.OperationModel(
                 operationId=api_model.operation_id,
                 deprecated=api_model.deprecated,
                 description=api_model.description,
                 summary=api_model.summary,
-                security=api_model.security,
+                tags=[i.name for i in api_model.tags],
             )
             if api_model.tags:
-                for tag in api_model.tags:
-                    self._add_tag(tag)
-                operation_model.tags = [i.name for i in api_model.tags]
+                self._add_tag(*api_model.tags)
+            if api_model.security:
+                self._add_security(api_model.security)
+                operation_model.security = [{k: v.get_security_scope()} for k, v in (api_model.security or {}).items()]
+
             # TODO check security
 
             api_model.add_to_operation_model(operation_model)

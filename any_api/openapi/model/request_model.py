@@ -2,6 +2,8 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, Field, validator
 
+from any_api.base_api.model.base_api_model import BaseSecurityModel
+
 from .openapi_model import OperationModel, TagModel
 from .response_model import BaseResponseModel
 from .util import HttpMethodLiteral, HttpParamTypeLiteral
@@ -87,7 +89,7 @@ class ApiModel(BaseModel):
     response_list: List[Type[BaseResponseModel]] = Field(
         default_factory=list, description="List of response object classes"
     )
-    security: Optional[List[Dict[str, List[str]]]] = Field(
+    security: Optional[Dict[str, BaseSecurityModel]] = Field(
         default=None,
         description=(
             "Each name MUST correspond to a security scheme which is declared in the Security Schemes under the"

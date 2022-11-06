@@ -154,11 +154,20 @@ def create_response_type(description: str, status_code: int) -> Type[request_mod
 ############
 # security #
 ############
-petstore_auth_list: List[Dict[str, List[str]]] = [{"petstore_auth": ["write:pets", "read:pets"]}]
-petstore_include_api_key_auth_list: List[Dict[str, List[str]]] = [
-    {"api_key": []},
-    {"petstore_auth": ["write:pets", "read:pets"]},
-]
+petstore_auth = openapi_model.Oauth2SecurityModel(
+    flows=openapi_model.OAuthFlowsModel(
+        implicit=openapi_model.OAuthFlowModel(
+            authorizationUrl="https://petstore3.swagger.io/oauth/authorize",
+            scopes={"write:pets": "modify pets in your account", "read:pets": "read your pets"},
+        )
+    )
+)
+api_key_auth = openapi_model.ApiKeySecurityModel(name="api_key", in_stub="header")
+petstore_auth_dict: Dict[str, openapi_model.SecurityModelType] = {"petstore_auth": petstore_auth}
+petstore_include_api_key_auth_dict: Dict[str, openapi_model.SecurityModelType] = {
+    "api_key": api_key_auth,
+    "petstore_auth": petstore_auth,
+}
 
 
 if __name__ == "__main__":
@@ -183,17 +192,6 @@ if __name__ == "__main__":
             description="Find out more about Swagger", url="http://swagger.io"
         ),
         server_model_list=[openapi_model.ServerModel(url="/api/v3")],
-        security_dict={
-            "petstore_auth": openapi_model.Oauth2SecurityModel(
-                flows=openapi_model.OAuthFlowsModel(
-                    implicit=openapi_model.OAuthFlowModel(
-                        authorizationUrl="https://petstore3.swagger.io/oauth/authorize",
-                        scopes={"write:pets": "modify pets in your account", "read:pets": "read your pets"},
-                    )
-                )
-            ),
-            "api_key": openapi_model.ApiKeySecurityModel(name="api_key", in_stub="header"),
-        },
     )
     pet_store_openapi.add_api_model(
         request_model.ApiModel(
@@ -221,7 +219,7 @@ if __name__ == "__main__":
                 create_response_type("Pet not found", 404),
                 create_response_type("Validation exception", 405),
             ],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -243,7 +241,7 @@ if __name__ == "__main__":
                 PetSuccessfulXmlResponse,
                 create_response_type("Invalid input", 405),
             ],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -277,7 +275,7 @@ if __name__ == "__main__":
                 PetSuccessfulXmlResponse,
                 create_response_type("Invalid status value", 400),
             ],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -307,7 +305,7 @@ if __name__ == "__main__":
                 PetSuccessfulXmlResponse,
                 create_response_type("Invalid tag value", 400),
             ],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -337,7 +335,7 @@ if __name__ == "__main__":
                 create_response_type("Invalid Id supplied", 400),
                 create_response_type("Pet not found", 400),
             ],
-            security=petstore_include_api_key_auth_list,
+            security=petstore_include_api_key_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -361,7 +359,7 @@ if __name__ == "__main__":
                 PetSuccessfulXmlResponse,
                 create_response_type("Invalid input", 405),
             ],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -393,7 +391,7 @@ if __name__ == "__main__":
                 # TODO body?
             },
             response_list=[PetSuccessfulJsonResponse],
-            security=petstore_auth_list,
+            security=petstore_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
@@ -405,7 +403,7 @@ if __name__ == "__main__":
             description="Returns a map of status codes to quantities",
             operation_id="getInventory",
             response_list=[SuccessfulOperationAndSchemaJsonResponse],
-            security=petstore_include_api_key_auth_list,
+            security=petstore_include_api_key_auth_dict,
         )
     )
     pet_store_openapi.add_api_model(
