@@ -34,6 +34,14 @@ class RequestModel(BaseModel):
     media_type_list: List[str] = Field("", description="OpenAPI media type")
     openapi_serialization: Optional[dict] = Field(None, description="OpenAPI serialization")
     model: Union[Type[BaseModel], Tuple[Type[BaseModel]]] = Field(description="request model")
+    model_key: Optional[str] = Field(
+        default=None,
+        description=(
+            "Usually the schema of the Request Body is the schema of the model,"
+            " but sometimes the schema of a field of the model is required"
+            ' e.g. schema: { "type": "string", "format": "binary" }'
+        ),
+    )
 
 
 class ApiModel(BaseModel):
@@ -86,7 +94,7 @@ class ApiModel(BaseModel):
     request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(
         default_factory=dict, description="request parameter and request body dict"
     )
-    response_list: List[Type[BaseResponseModel]] = Field(
+    response_list: List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]] = Field(
         default_factory=list, description="List of response object classes"
     )
     security: Optional[Dict[str, BaseSecurityModel]] = Field(
@@ -107,8 +115,16 @@ class ApiModel(BaseModel):
         return path
 
     @validator("response_list")
-    def validate_core_response(cls, response_list: List[Type[BaseResponseModel]]) -> List[Type[BaseResponseModel]]:
-        if len([i for i in response_list if i.is_core is True]) > 1:
+    def validate_core_response(
+        cls, response_list: List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]]
+    ) -> List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]]:
+        cnt: int = 0
+        for response in response_list:
+            if isinstance(response, tuple):
+                response = response[0]
+            if response.is_core is True:
+                cnt += 1
+        if cnt > 1:
             raise ValueError("only one core response model")
         return response_list
 

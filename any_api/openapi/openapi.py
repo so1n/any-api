@@ -163,6 +163,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                             "description"
                         ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
             else:
+                if api_request_model.model_key is not None:
+                    real_schema_dict = schema_dict["properties"][api_request_model.model_key]
+                else:
+                    real_schema_dict = {"$ref": f"#/components/schemas/{global_model_name}"}
                 if media_type in content_dict:
                     if request_body_is_array:
                         raise ValueError("request body is array, not support multi diff request body")
@@ -171,18 +175,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                     exist_ref_key: str = content_dict[media_type].schema_.pop("$ref", "")
                     if exist_ref_key:
                         content_dict[media_type].schema_["oneOf"].append({"$ref": exist_ref_key})
-                    content_dict[media_type].schema_["oneOf"].append(
-                        {"$ref": f"#/components/schemas/{global_model_name}"}
-                    )
+                    content_dict[media_type].schema_["oneOf"].append(real_schema_dict)
                 else:
                     if request_body_is_array:
-                        content_dict[media_type] = openapi_model.MediaTypeModel(
-                            schema={"type": "array", "items": {"$ref": f"#/components/schemas/{global_model_name}"}}
-                        )
-                    else:
-                        content_dict[media_type] = openapi_model.MediaTypeModel(
-                            schema={"$ref": f"#/components/schemas/{global_model_name}"}
-                        )
+                        real_schema_dict = {"type": "array", "items": real_schema_dict}
+                    content_dict[media_type] = openapi_model.MediaTypeModel(schema=real_schema_dict)
             # TODO support payload?
             # https://swagger.io/docs/specification/describing-request-body/
 
@@ -241,10 +238,15 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         api_model: request_model.ApiModel,
         operation_model: openapi_model.OperationModel,
     ) -> None:
-        response_schema_dict: Dict[tuple, List[Dict[str, str]]] = {}
+        response_schema_dict: Dict[tuple, List[dict]] = {}
         core_resp_model: Optional[response_model.BaseResponseModel] = None
         responses = operation_model.responses
+
         for resp_model_class in api_model.response_list:
+            _is_array_response: bool = False
+            if isinstance(resp_model_class, tuple):
+                _is_array_response = True
+                resp_model_class = resp_model_class[0]
             resp_model: response_model.BaseResponseModel = resp_model_class()
             if core_resp_model is None or core_resp_model.is_core:
                 core_resp_model = resp_model
@@ -285,13 +287,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 if resp_model.links_model_dict:
                     response.links = resp_model.links_model_dict
 
-                if global_model_name:
-                    openapi_schema_dict: dict = {"$ref": f"#/components/schemas/{global_model_name}"}
-                    if key in response_schema_dict:
-                        response_schema_dict[key].append(openapi_schema_dict)
-                    else:
-                        response_schema_dict[key] = [openapi_schema_dict]
-                elif resp_model.openapi_schema:
+                if resp_model.openapi_schema:
                     if response.content is None:
                         response.content = {}
                     if resp_model.media_type in response.content:
@@ -303,6 +299,14 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                     response.content[resp_model.media_type] = openapi_model.MediaTypeModel(
                         schema=resp_model.openapi_schema
                     )
+                elif global_model_name:
+                    openapi_schema_dict: dict = {"$ref": f"#/components/schemas/{global_model_name}"}
+                    if _is_array_response:
+                        openapi_schema_dict = {"type": "array", "items": openapi_schema_dict}
+                    if key in response_schema_dict:
+                        response_schema_dict[key].append(openapi_schema_dict)
+                    else:
+                        response_schema_dict[key] = [openapi_schema_dict]
                 else:
                     logging.warning(
                         f"Can not found response schema from {api_model.operation_id}'s response model:{resp_model}"
