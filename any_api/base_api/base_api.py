@@ -57,10 +57,34 @@ class BaseAPI(Generic[_ModelT]):
                     if isinstance(item, dict):
                         self._replace_pydantic_definitions(item, parent_schema)
 
-    def _schema_handle(self, model: Type[BaseModel], enable_move_to_component: bool = True) -> Tuple[str, dict]:
-        global_model_name = by_pydantic.get_model_global_name(model)
+    def _xml_handler(self, schema_dict: dict) -> None:
+        schema_dict["xml"] = {"name": schema_dict["title"]}
+        if "properties" in schema_dict:
+            for key, value in schema_dict["properties"].items():
+                if "type" not in value:
+                    continue
+                if value["type"] != "array":
+                    continue
+                value["xml"] = {"wrapped": True}
+                if "$ref" not in value["items"]:
+                    value["items"]["xml"] = {"name": value["title"]}
+        if "definitions" in schema_dict:
+            for _, _schema_dict in schema_dict["definitions"].items():
+                self._xml_handler(_schema_dict)
 
+    def _schema_handle(
+        self, model: Type[BaseModel], enable_move_to_component: bool = True, is_xml_model: bool = False
+    ) -> Tuple[str, dict]:
+        global_model_name = by_pydantic.get_model_global_name(model)
+        if (
+            global_model_name in self._api_model.components[self._schema_key]
+            and enable_move_to_component
+            and not is_xml_model
+        ):
+            return global_model_name, self._api_model.components[self._schema_key][global_model_name]
         schema_dict: dict = copy.deepcopy(by_pydantic.any_api_model_schema(model))
+        if is_xml_model:
+            self._xml_handler(schema_dict)
         self._replace_pydantic_definitions(schema_dict)
         if "definitions" in schema_dict:
             # fix del schema dict

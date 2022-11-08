@@ -22,7 +22,7 @@ class BaseResponseModel(object):
     is_core: bool = False
 
     # response data
-    response_data: Union[Type[BaseModel], str, bytes]
+    response_data: Union[Type[BaseModel], str, bytes, None]
     # response media type
     media_type: str = "*/*"
 

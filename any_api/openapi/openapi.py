@@ -1,4 +1,3 @@
-import logging
 from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel
@@ -136,11 +135,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         else:
             request_body_model = api_request_model.model
         global_model_name, schema_dict = self._schema_handle(
-            request_body_model, enable_move_to_component=param_type != "multiform"
+            request_body_model,
+            enable_move_to_component=param_type != "multiform",
+            is_xml_model="application/xml" in api_request_model.media_type_list,
         )
         for media_type in api_request_model.media_type_list:
             content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
-
             if param_type == "multiform":
                 if media_type in content_dict:
                     for key, value in content_dict[media_type].schema_.items():
@@ -258,7 +258,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 and isinstance(resp_model.response_data, type)
                 and issubclass(resp_model.response_data, BaseModel)
             ):
-                global_model_name, schema_dict = self._schema_handle(resp_model.response_data)
+                global_model_name, schema_dict = self._schema_handle(
+                    resp_model.response_data, is_xml_model="application/xml" == resp_model.media_type
+                )
                 # set custom title
                 if resp_model.name is not None:
                     schema_dict["title"] = resp_model.name
@@ -317,10 +319,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                         response_schema_dict[key].append(openapi_schema_dict)
                     else:
                         response_schema_dict[key] = [openapi_schema_dict]
-                else:
-                    logging.warning(
-                        f"Can not found response schema from {api_model.operation_id}'s response model:{resp_model}"
-                    )
         # mutli response support
         # only response example see https://swagger.io/docs/specification/describing-responses/   FAQ
         for key_tuple, path_list in response_schema_dict.items():
@@ -358,8 +356,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if api_model.security:
                 self._add_security(api_model.security)
                 operation_model.security = [{k: v.get_security_scope()} for k, v in (api_model.security or {}).items()]
-
-            # TODO check security
 
             api_model.add_to_operation_model(operation_model)
 

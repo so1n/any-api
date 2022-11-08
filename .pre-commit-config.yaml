@@ -15,6 +15,7 @@ repos:
     rev: 3.9.2
     hooks:
       - id: flake8
+        exclude: "^tests/test_pet_store.py"
   - repo: https://github.com/myint/autoflake
     rev: v1.4
     hooks:
