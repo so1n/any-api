@@ -426,8 +426,8 @@ class OperationModel(BaseModel):
             " identify an operation, therefore, it is RECOMMENDED to follow common programming naming conventions."
         ),
     )
-    parameters: Optional[List[Union[RefModel, ParameterModel]]] = Field(
-        default=None,
+    parameters: List[Union[RefModel, ParameterModel]] = Field(
+        default_factory=list,
         description=(
             "A list of parameters that are applicable for this operation. If a parameter is already defined at the "
             "Path Item, the new definition will override it but can never remove it. The list MUST NOT include"
@@ -557,7 +557,6 @@ class ApiKeySecurityModel(BaseSecurityModel):
 
     @root_validator(pre=True)
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        print(cls, values)
         values["type"] = "apiKey"
         values["in"] = values["in_stub"]
         return values

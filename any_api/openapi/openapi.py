@@ -247,6 +247,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if isinstance(resp_model_class, tuple):
                 _is_array_response = True
                 resp_model_class = resp_model_class[0]
+
             resp_model: response_model.BaseResponseModel = resp_model_class()
             if core_resp_model is None or core_resp_model.is_core:
                 core_resp_model = resp_model
@@ -258,12 +259,21 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 and issubclass(resp_model.response_data, BaseModel)
             ):
                 global_model_name, schema_dict = self._schema_handle(resp_model.response_data)
+                # set custom title
                 if resp_model.name is not None:
                     schema_dict["title"] = resp_model.name
 
-            for _status_code in resp_model.status_code:
+            if isinstance(resp_model.status_code, str):
+                # support status_code is default
+                status_code_tuple: tuple = (resp_model.status_code,)
+            else:
+                status_code_tuple = resp_model.status_code
+
+            for _status_code in status_code_tuple:
                 status_code_str: str = str(_status_code)
                 key: tuple = (status_code_str, resp_model.media_type)
+
+                # init response and header handler
                 header_dict = self._header_handle(resp_model.header) if resp_model.header else {}
                 if status_code_str in responses:
                     if resp_model.description:
@@ -315,13 +325,14 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         # only response example see https://swagger.io/docs/specification/describing-responses/   FAQ
         for key_tuple, path_list in response_schema_dict.items():
             status_code_str, media_type = key_tuple
-            if len(path_list) == 1:
-                openapi_schema_dict = path_list[0]
-            else:
-                openapi_schema_dict = {"oneOf": path_list}
-
             content_dict: Dict[str, openapi_model.MediaTypeModel] = responses[status_code_str].content or {}
-            content_dict[media_type] = openapi_model.MediaTypeModel(schema=openapi_schema_dict)
+            if path_list:
+                if len(path_list) == 1:
+                    openapi_schema_dict = path_list[0]
+                else:
+                    openapi_schema_dict = {"oneOf": path_list}
+
+                content_dict[media_type] = openapi_model.MediaTypeModel(schema=openapi_schema_dict)
             responses[status_code_str].content = content_dict
         operation_model.responses = responses
 

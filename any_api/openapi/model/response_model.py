@@ -1,6 +1,7 @@
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel
+from typing_extensions import Literal
 
 from any_api.openapi.model import openapi_model
 from any_api.util.by_pydantic import gen_example_dict_from_schema
@@ -32,7 +33,7 @@ class BaseResponseModel(object):
     # response header
     header: Optional[BaseModel] = None
     # response status code
-    status_code: Tuple[int] = (200,)
+    status_code: Union[Tuple[int], Literal["default"]] = (200,)
 
     # The value of this response in openapi.schema
     # if value is empty,  will auto gen response model and set to openapi.schema
