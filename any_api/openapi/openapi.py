@@ -3,9 +3,10 @@ from typing import Dict, List, Optional, Type
 from pydantic import BaseModel
 from typing_extensions import Literal
 
-import any_api.openapi.model.util
+import any_api.openapi.model.openapi
 from any_api.base_api.base_api import BaseAPI
-from any_api.openapi.model import openapi_model, request_model, response_model
+from any_api.openapi.model import openapi as openapi_model
+from any_api.openapi.model import request_model, response_model
 from any_api.openapi.model.util import HttpMethodLiteral
 
 __all__ = ["OpenAPI"]
@@ -56,10 +57,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             external_docs=external_docs,
         )
 
-    def _header_handle(self, model: BaseModel) -> Dict[str, openapi_model.HeaderModel]:
-        header_dict: Dict[str, openapi_model.HeaderModel] = {}
+    def _header_handle(self, model: BaseModel) -> Dict[str, any_api.openapi.model.openapi.HeaderModel]:
+        header_dict: Dict[str, any_api.openapi.model.openapi.HeaderModel] = {}
         for key, value in model.schema()["properties"].items():
-            header_dict[key] = openapi_model.HeaderModel(
+            header_dict[key] = any_api.openapi.model.openapi.HeaderModel(
                 description=value.get("description", ""),
                 required=key in model.schema().get("required", []),
                 deprecated=value.get("deprecated", False),

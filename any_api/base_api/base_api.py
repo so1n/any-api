@@ -5,7 +5,7 @@ from typing import Any, Dict, Generic, Optional, Tuple, Type, TypeVar
 from pydantic import BaseModel
 
 from any_api.base_api.model.base_api_model import BaseAPIModel, BaseSecurityModel
-from any_api.openapi.model.openapi_model import TagModel
+from any_api.openapi.model.openapi import TagModel
 from any_api.util import by_pydantic
 
 __all__ = ["BaseAPI"]

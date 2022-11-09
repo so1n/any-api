@@ -2,9 +2,10 @@ from typing import Dict, List
 
 from pydantic import BaseModel, Field
 
-from any_api.openapi.model.openapi_model import ExternalDocumentationModel, InfoModel
-from any_api.openapi.model.openapi_model import ServerVariableModel as _ServerVariableModel
-from any_api.openapi.model.openapi_model import TagModel
+from any_api.openapi.model.openapi import TagModel
+from any_api.openapi.model.openapi.basic import ExternalDocumentationModel
+from any_api.openapi.model.openapi.basic import ServerVariableModel as _ServerVariableModel
+from any_api.openapi.model.openapi.metadata import InfoModel
 
 
 class ServerVariableModel(_ServerVariableModel):

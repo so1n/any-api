@@ -3,7 +3,8 @@ from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
 
-from any_api.openapi.openapi import OpenAPI, openapi_model, request_model, response_model
+from any_api.openapi.model import openapi as openapi_model
+from any_api.openapi.openapi import OpenAPI, request_model, response_model
 from any_api.util.by_pydantic import create_pydantic_model
 
 # copy from https://petstore3.swagger.io/api/v3/openapi.json
@@ -13,12 +14,12 @@ from any_api.util.by_pydantic import create_pydantic_model
 pet_tag: openapi_model.TagModel = openapi_model.TagModel(
     name="pet",
     description="Everything about your Pets",
-    externalDocs=openapi_model.ExternalDocumentationModel(description="Find out more", url="http://swagger.io"),
+    externalDocs=openapi_model.basic.ExternalDocumentationModel(description="Find out more", url="http://swagger.io"),
 )
 store_tag: openapi_model.TagModel = openapi_model.TagModel(
     name="store",
     description="Access to Petstore orders",
-    externalDocs=openapi_model.ExternalDocumentationModel(
+    externalDocs=openapi_model.basic.ExternalDocumentationModel(
         description="Find out more about our store", url="http://swagger.io"
     ),
 )
@@ -188,17 +189,17 @@ def create_response_type(description: str, status_code: int) -> Type[request_mod
 ############
 # security #
 ############
-petstore_auth = openapi_model.Oauth2SecurityModel(
-    flows=openapi_model.OAuthFlowsModel(
-        implicit=openapi_model.OAuthFlowModel(
+petstore_auth = openapi_model.security.Oauth2SecurityModel(
+    flows=openapi_model.security.OAuthFlowsModel(
+        implicit=openapi_model.security.OAuthFlowModel(
             authorizationUrl="https://petstore3.swagger.io/oauth/authorize",
             scopes={"write:pets": "modify pets in your account", "read:pets": "read your pets"},
         )
     )
 )
-api_key_auth = openapi_model.ApiKeySecurityModel(name="api_key", in_stub="header")
-petstore_auth_dict: Dict[str, openapi_model.SecurityModelType] = {"petstore_auth": petstore_auth}
-petstore_include_api_key_auth_dict: Dict[str, openapi_model.SecurityModelType] = {
+api_key_auth = openapi_model.security.ApiKeySecurityModel(name="api_key", in_stub="header")
+petstore_auth_dict: Dict[str, openapi_model.security.SecurityModelType] = {"petstore_auth": petstore_auth}
+petstore_include_api_key_auth_dict: Dict[str, openapi_model.security.SecurityModelType] = {
     "api_key": api_key_auth,
     "petstore_auth": petstore_auth,
 }
@@ -219,10 +220,10 @@ pet_store_openapi: OpenAPI = OpenAPI(
         version="1.0.17",
     ),
     tag_model_list=[pet_tag, store_tag, user_tag],
-    external_docs=openapi_model.ExternalDocumentationModel(
+    external_docs=openapi_model.basic.ExternalDocumentationModel(
         description="Find out more about Swagger", url="http://swagger.io"
     ),
-    server_model_list=[openapi_model.ServerModel(url="/api/v3")],
+    server_model_list=[openapi_model.basic.ServerModel(url="/api/v3")],
 )
 pet_store_openapi.add_api_model(
     request_model.ApiModel(

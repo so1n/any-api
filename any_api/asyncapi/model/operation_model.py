@@ -2,7 +2,8 @@ from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from .asyncapi_model import ExternalDocumentationModel, TagModel
+from ...openapi.model.openapi import TagModel
+from ...openapi.model.openapi.basic import ExternalDocumentationModel
 
 
 class OperationModel(BaseModel):

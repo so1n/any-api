@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, validator
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
 
-from .openapi_model import OperationModel, TagModel
+from .openapi import OperationModel, TagModel
 from .response_model import BaseResponseModel
 from .util import HttpMethodLiteral, HttpParamTypeLiteral
 

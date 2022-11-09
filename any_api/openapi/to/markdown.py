@@ -3,7 +3,7 @@ from typing import Dict, List, Type, Union
 
 from typing_extensions import TypedDict
 
-from any_api.openapi.model import openapi_model
+from any_api.openapi.model import openapi as openapi_model
 from any_api.openapi.openapi import OpenAPI
 from any_api.util.by_pydantic import gen_example_dict_from_schema
 from any_api.util.i18n import I18n, I18nContext, i18n_local, join_i18n
@@ -49,8 +49,8 @@ class Markdown(object):
             md_text += f"{indent * ' '} |" + "|".join([str(i) for i in item.values()]) + "|\n"
         return md_text
 
-    def get_schema_dict(self, schema_obj: Union[openapi_model.RefModel, dict]) -> dict:
-        if isinstance(schema_obj, openapi_model.RefModel):
+    def get_schema_dict(self, schema_obj: Union[openapi_model.basic.RefModel, dict]) -> dict:
+        if isinstance(schema_obj, openapi_model.basic.RefModel):
             key_list: List[str] = schema_obj.ref[2:].split("/")
         elif isinstance(schema_obj, dict) and "$ref" in schema_obj:
             key_list = schema_obj["$ref"][2:].split("/")
@@ -70,7 +70,7 @@ class Markdown(object):
 
     def request_body_handle(
         self,
-        schema_obj: Union[openapi_model.RefModel, dict],
+        schema_obj: Union[openapi_model.basic.RefModel, dict],
         nested: int = 0,
     ) -> List[dict]:
         parameter_list: List[dict] = []

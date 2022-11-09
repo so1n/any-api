@@ -1,5 +1,8 @@
 from typing import Dict, List, Optional
 
+import any_api.openapi.model.openapi
+import any_api.openapi.model.openapi.basic
+import any_api.openapi.model.openapi.metadata
 from any_api.asyncapi.model import asyncapi_model, operation_model
 from any_api.base_api.base_api import BaseAPI
 from any_api.util.util import get_key_from_template
@@ -11,10 +14,10 @@ class AsyncAPI(BaseAPI[asyncapi_model.AsyncAPIModel]):
     def __init__(
         self,
         async_api_id: str,
-        asyncapi_info_model: Optional[asyncapi_model.InfoModel] = None,
+        asyncapi_info_model: Optional[any_api.openapi.model.openapi.metadata.InfoModel] = None,
         server_model_dict: Optional[Dict[str, asyncapi_model.ServerModel]] = None,
-        tag_model_list: Optional[List[asyncapi_model.TagModel]] = None,
-        external_docs: Optional[asyncapi_model.ExternalDocumentationModel] = None,
+        tag_model_list: Optional[List[any_api.openapi.model.openapi.TagModel]] = None,
+        external_docs: Optional[any_api.openapi.model.openapi.basic.ExternalDocumentationModel] = None,
     ):
         self._add_tag_dict: dict = {}
 
@@ -33,10 +36,10 @@ class AsyncAPI(BaseAPI[asyncapi_model.AsyncAPIModel]):
     def build(
         cls,
         async_api_id: str,
-        asyncapi_info_model: Optional[asyncapi_model.InfoModel] = None,
+        asyncapi_info_model: Optional[any_api.openapi.model.openapi.metadata.InfoModel] = None,
         server_model_dict: Optional[Dict[str, asyncapi_model.ServerModel]] = None,
-        tag_model_list: Optional[List[asyncapi_model.TagModel]] = None,
-        external_docs: Optional[asyncapi_model.ExternalDocumentationModel] = None,
+        tag_model_list: Optional[List[any_api.openapi.model.openapi.TagModel]] = None,
+        external_docs: Optional[any_api.openapi.model.openapi.basic.ExternalDocumentationModel] = None,
     ) -> "AsyncAPI":
         return cls(
             async_api_id=async_api_id,

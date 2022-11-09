@@ -5,104 +5,21 @@ refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.
 """
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, root_validator
 from typing_extensions import Literal
 
-from any_api.base_api.model.base_api_model import BaseSecurityModel
-
-try:
-    import email_validator  # isort: skip
-except ImportError:
-    EmailStr = str
-else:
-    from pydantic import EmailStr  # type: ignore
-
-from .util import HttpMethodLiteral, SecurityHttpParamTypeLiteral
-
-
-class Contact(BaseModel):
-    name: str = Field(default="", description="The identifying name of the contact person/organization.")
-    url: AnyUrl = Field(
-        default="", description="The URL pointing to the contact information. MUST be in the format of a URL."
-    )
-    email: EmailStr = Field(
-        description="The email address of the contact person/organization. MUST be in the format of an email address."
-    )
-
-
-class License(BaseModel):
-    name: str = Field(description="The license name used for the API.")
-    url: str = Field(description="A URL to the license used for the API. MUST be in the format of a URL.")
-
-
-class InfoModel(BaseModel):
-    """open api info column model"""
-
-    title: str = Field("AnyApi", description="The title of the API.")
-    description: str = Field(
-        "API Documentation",
-        description="A short description of the API. CommonMark syntax MAY be used for rich text representation.",
-    )
-    terms_of_service: Optional[str] = Field(
-        None,
-        alias="termsOfService",
-        description="	A URL to the Terms of Service for the API. MUST be in the format of a URL.",
-    )
-    contact: Optional[Contact] = Field(None, description="The contact information for the exposed API.")
-    license: Optional[License] = Field(None, description="The license information for the exposed API.")
-    version: str = Field(
-        "0.0.1",
-        description=(
-            "The version of the OpenAPI document (which is distinct from the OpenAPI Specification version or "
-            "the API implementation version)."
-        ),
-    )
-
-
-class ServerVariableModel(BaseModel):
-    enum: List[str] = Field(
-        default_factory=list,
-        description="An enumeration of string values to be used if the substitution options are from a limited set.",
-    )
-    default: str = Field(
-        description="The default value to use for substitution, and to send, if an alternate value is not supplied."
-    )
-    description: str = Field(
-        description=(
-            "An optional description for the server variable. "
-            "CommonMark syntax MAY be used for rich text representation."
-        )
-    )
-
-
-class ServerModel(BaseModel):
-    url: str = Field(
-        description=(
-            "A URL to the target host. This URL supports Server Variables and MAY be relative, "
-            "to indicate that the host location is relative to the location"
-            " where the OpenAPI document is being served. "
-            "Variable substitutions will be made when a variable is named in {brackets}."
-        )
-    )
-    description: str = Field(
-        default="",
-        description=(
-            "An optional string describing the host designated by the URL."
-            " CommonMark syntax MAY be used for rich text representation."
-        ),
-    )
-    variables: Optional[Dict[str, ServerVariableModel]] = Field(default=None)
-
-
-class ExternalDocumentationModel(BaseModel):
-    description: str = Field(
-        default="",
-        description=(
-            "A short description of the target documentation. "
-            "CommonMark syntax MAY be used for rich text representation."
-        ),
-    )
-    url: str = Field(description="The URL for the target documentation. Value MUST be in the format of a URL.")
+from ..util import HttpMethodLiteral
+from .basic import ExampleModel, ExternalDocumentationModel, RefModel, ServerModel, ServerVariableModel
+from .info import Contact, InfoModel, License
+from .security import (
+    ApiKeySecurityModel,
+    HttpSecurityModel,
+    Oauth2SecurityModel,
+    OAuthFlowModel,
+    OAuthFlowsModel,
+    OpenIdConnectUrlSecurityModel,
+    SecurityModelType,
+)
 
 
 class TagModel(BaseModel):
@@ -112,35 +29,6 @@ class TagModel(BaseModel):
     )
     external_docs: Optional[ExternalDocumentationModel] = Field(
         alias="externalDocs", default=None, description="Additional external documentation for this tag."
-    )
-
-
-class RefModel(BaseModel):
-    ref: str = Field(alias="$ref")
-
-
-class ExampleModel(BaseModel):
-    summary: str = Field(default="", description="A short summary of what the operation does.")
-    description: str = Field(
-        default="",
-        description=(
-            "A verbose explanation of the operation behavior. CommonMark syntax MAY be used for"
-            " rich text representation."
-        ),
-    )
-    value: Any = Field(
-        description=(
-            "Embedded literal example. The value field and externalValue field are mutually exclusive."
-            " To represent examples of media types that cannot naturally represented in JSON or YAML, "
-            "use a string value to contain the example, escaping where necessary."
-        )
-    )
-    externalValue: str = Field(
-        description=(
-            "A URL that points to the literal example. This provides the capability to reference examples that"
-            " cannot easily be included in JSON or YAML documents. The value field and externalValue field are "
-            "mutually exclusive."
-        )
     )
 
 
@@ -483,146 +371,6 @@ class OperationModel(BaseModel):
             "the default value would be a Server Object with a url value of /."
         ),
     )
-
-
-class OAuthFlowModel(BaseModel):
-    authorization_url: Optional[str] = Field(
-        default=None,
-        alias="authorizationUrl",
-        description="The authorization URL to be used for this flow. This MUST be in the form of a URL.",
-    )
-    token_url: Optional[str] = Field(
-        default=None,
-        alias="tokenUrl",
-        description="The token URL to be used for this flow. This MUST be in the form of a URL.",
-    )
-    refresh_url: Optional[str] = Field(
-        default=None,
-        alias="refreshUrl",
-        description="The URL to be used for obtaining refresh tokens. This MUST be in the form of a URL.",
-    )
-    scopes: Dict[str, str] = Field(
-        description=(
-            "The available scopes for the OAuth2 security scheme. A map between the scope name and a short description"
-            " for it. The map MAY be empty."
-        )
-    )
-
-
-class OAuthFlowsModel(BaseModel):
-    implicit: Optional[OAuthFlowModel] = Field(default=None, description="Configuration for the OAuth Implicit flow")
-    password: Optional[OAuthFlowModel] = Field(
-        default=None, description="Configuration for the OAuth Resource Owner Password flow"
-    )
-    client_credentials: Optional[OAuthFlowModel] = Field(
-        alias="clientCredentials",
-        default=None,
-        description=(
-            "Configuration for the OAuth Client Credentials flow. Previously called application in OpenAPI 2.0."
-        ),
-    )
-    authorization_code: Optional[OAuthFlowModel] = Field(
-        alias="authorizationCode",
-        default=None,
-        description="Configuration for the OAuth Authorization Code flow. Previously called accessCode in OpenAPI 2.0.",
-    )
-
-    @root_validator(pre=True)
-    def check_include_model(cls, values: Dict[str, OAuthFlowModel]) -> Dict[str, OAuthFlowModel]:
-        for key, oauth_flow_model in values.items():
-            if key in ("implicit", "authorizationCode"):
-                if oauth_flow_model.authorization_url is None:
-                    raise ValueError(f"{key}->{oauth_flow_model.__class__.__name__}->`authorizationUrl` not be empty")
-            if key in ("authorizationCode", "password", "clientCredentials"):
-                if oauth_flow_model.token_url is None:
-                    raise ValueError(f"{key}->{oauth_flow_model.__class__.__name__}->`tokenUrl` not be empty")
-        return values
-
-
-class ApiKeySecurityModel(BaseSecurityModel):
-    name: str = Field(description="The name of the header, query or cookie parameter to be used.")
-    in_: SecurityHttpParamTypeLiteral = Field(
-        default="",
-        alias="in",
-        description=' The location of the API key. Valid values are "query", "header" or "cookie".',
-    )
-    in_stub: SecurityHttpParamTypeLiteral = Field(
-        description=(
-            "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
-        )
-    )
-
-    class Config:
-        fields = {"in_stub": {"exclude": True}}
-
-    @root_validator(pre=True)
-    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        values["type"] = "apiKey"
-        values["in"] = values["in_stub"]
-        return values
-
-
-class HttpSecurityModel(BaseSecurityModel):
-    scheme: str = Field(
-        description=(
-            "The name of the HTTP Authorization scheme to be used in the Authorization header as defined in RFC7235. "
-            "The values used SHOULD be registered in the IANA Authentication Scheme registry."
-        )
-    )
-    bearer_format: Optional[str] = Field(
-        default=None,
-        alias="bearerFormat",
-        description=(
-            "A hint to the client to identify how the bearer token is formatted. Bearer tokens are usually generated by"
-            " an authorization server, so this information is primarily for documentation purposes."
-        ),
-    )
-
-    @root_validator(pre=True)
-    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        values["type"] = "http"
-        return values
-
-
-class Oauth2SecurityModel(BaseSecurityModel):
-    flows: OAuthFlowsModel = Field(
-        description="An object containing configuration information for the flow types supported."
-    )
-
-    @root_validator(pre=True)
-    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        values["type"] = "oauth2"
-        return values
-
-    def get_security_scope(self) -> List[str]:
-        scope_list: List[str] = []
-        if self.flows.authorization_code:
-            scope_list.extend(self.flows.authorization_code.scopes.keys())
-
-        if self.flows.client_credentials:
-            scope_list.extend(self.flows.client_credentials.scopes.keys())
-
-        if self.flows.implicit:
-            scope_list.extend(self.flows.implicit.scopes.keys())
-
-        if self.flows.password:
-            scope_list.extend(self.flows.password.scopes.keys())
-        return scope_list
-
-
-class OpenIdConnectUrlSecurityModel(BaseSecurityModel):
-    open_id_connect_url: str = Field(
-        alias="openIdConnectUrl",
-        description="OpenId Connect URL to discover OAuth2 configuration values. This MUST be in the form of a URL.",
-    )
-
-    @root_validator(pre=True)
-    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        values["type"] = "openIdConnect"
-        return values
-
-
-SecurityModelType = Union[ApiKeySecurityModel, HttpSecurityModel, Oauth2SecurityModel, OpenIdConnectUrlSecurityModel]
 
 
 class OpenAPIModel(BaseModel):

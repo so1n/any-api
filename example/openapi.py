@@ -3,7 +3,8 @@ from typing import Any, List, Type
 
 from pydantic import BaseModel, Field
 
-from any_api.openapi.openapi import OpenAPI, openapi_model, request_model, response_model
+from any_api.openapi.model import openapi as openapi_model
+from any_api.openapi.openapi import OpenAPI, request_model, response_model
 
 
 class SexEnum(str, Enum):
