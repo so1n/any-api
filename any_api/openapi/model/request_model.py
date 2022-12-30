@@ -1,12 +1,15 @@
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
 
 from .openapi import OperationModel, TagModel
 from .response_model import BaseResponseModel
 from .util import HttpMethodLiteral, HttpParamTypeLiteral
+
+if TYPE_CHECKING:
+    from .links import LinksModel
 
 
 class RequestModel(BaseModel):
@@ -130,3 +133,24 @@ class ApiModel(BaseModel):
 
     def add_to_operation_model(self, openapi_model: OperationModel) -> None:
         pass
+
+    @root_validator
+    def after_init(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        """Data association after initializing data"""
+        request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = values["request_dict"]
+        for http_param_type_name, request_model_list in request_dict.items():
+            for request_model in request_model_list:
+                if isinstance(request_model.model, tuple):
+                    model_tuple: Tuple[Type[BaseModel]] = request_model.model
+                else:
+                    model_tuple = (request_model.model,)
+                for model in model_tuple:
+                    for field_name, field in model.__fields__.items():
+                        if "link" in field.field_info.extra:
+                            link_model: LinksModel = field.field_info.extra.pop("link")
+                            link_model.register(
+                                param_name=field.field_info.alias or field_name,
+                                http_param_type_name=http_param_type_name,
+                                operation_id=values["operation_id"],
+                            )
+        return values

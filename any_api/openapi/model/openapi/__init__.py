@@ -217,7 +217,8 @@ class RequestBodyModel(BaseModel):
 
 
 class LinkModel(BaseModel):
-    operation_ref: str = Field(
+    operation_ref: Optional[str] = Field(
+        default=None,
         alias="operationRef",
         description=(
             "A relative or absolute URI reference to an OAS operation. "
@@ -227,6 +228,7 @@ class LinkModel(BaseModel):
         ),
     )
     operation_id: str = Field(
+        default="",
         alias="operationId",
         description=(
             "The name of an existing, resolvable OAS operation, as defined with a unique operationId."
@@ -234,6 +236,7 @@ class LinkModel(BaseModel):
         ),
     )
     parameters: Dict[str, str] = Field(
+        default_factory=dict,
         description=(
             "A map representing parameters to pass to an operation as specified with operationId or identified via"
             " operationRef. "
@@ -241,10 +244,11 @@ class LinkModel(BaseModel):
             " evaluated and passed to the linked operation. The parameter name can be qualified using the parameter"
             " location [{in}.]{name} for operations that use the same parameter name in different"
             " locations (e.g. path.id)."
-        )
+        ),
     )
-    requestBody: str = Field(
-        description="A literal value or {expression} to use as a request body when calling the target operation."
+    requestBody: Optional[str] = Field(
+        default=None,
+        description="A literal value or {expression} to use as a request body when calling the target operation.",
     )
     description: str = Field(
         description=(
@@ -252,7 +256,9 @@ class LinkModel(BaseModel):
             "CommonMark syntax MAY be used for rich text representation."
         )
     )
-    server: ServerModel = Field(description="A server object to be used by the target operation.")
+    server: Optional[ServerModel] = Field(
+        default=None, description="A server object to be used by the target operation."
+    )
 
 
 class ResponseModel(BaseModel):
@@ -422,6 +428,6 @@ class OpenAPIModel(BaseModel):
     #         "To make security optional, an empty security requirement ({}) can be included in the array."
     #     ),
     # )
-    external_docs: ExternalDocumentationModel = Field(
-        alias="externalDocs", default_factory=dict, description="Additional external documentation for this tag."
+    external_docs: Optional[ExternalDocumentationModel] = Field(
+        alias="externalDocs", default=None, description="Additional external documentation for this tag."
     )

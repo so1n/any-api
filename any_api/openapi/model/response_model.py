@@ -15,6 +15,9 @@ __all__ = [
 ]
 
 
+_resp_model_class_link_dict: Dict[str, Dict[str, openapi_model.LinkModel]] = {}
+
+
 class BaseResponseModel(object):
     """response model https://swagger.io/docs/specification/describing-responses/"""
 
@@ -39,16 +42,27 @@ class BaseResponseModel(object):
     # if value is empty,  will auto gen response model and set to openapi.schema
     openapi_schema: Optional[dict] = None
 
-    # links model
-    links_model_dict: Dict[str, openapi_model.LinkModel] = {}
+    @classmethod
+    def is_base_model_response_data(cls) -> bool:
+        return isinstance(cls.response_data, type) and issubclass(cls.response_data, BaseModel)
 
     @classmethod
     def get_example_value(cls, **extra: Any) -> Any:
         return cls.response_data
 
+    @property
+    def links_model_dict(self) -> Dict[str, openapi_model.LinkModel]:
+        return _resp_model_class_link_dict.get(self.__class__.__qualname__, {})
+
     @classmethod
     def register_link_schema(cls, link_model_dict: Dict[str, openapi_model.LinkModel]) -> None:
-        cls.links_model_dict.update(link_model_dict)
+        if cls.__qualname__ not in _resp_model_class_link_dict:
+            _resp_model_class_link_dict[cls.__qualname__] = {}
+        links_model_dict: Dict[str, openapi_model.LinkModel] = _resp_model_class_link_dict[cls.__qualname__]
+        for key, value in link_model_dict.items():
+            if key in links_model_dict:
+                continue
+            links_model_dict[key] = value
 
 
 class JsonResponseModel(BaseResponseModel):

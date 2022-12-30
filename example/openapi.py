@@ -3,6 +3,7 @@ from typing import Any, List, Type
 
 from pydantic import BaseModel, Field
 
+from any_api.openapi.model import links
 from any_api.openapi.model import openapi as openapi_model
 from any_api.openapi.openapi import OpenAPI, request_model, response_model
 
@@ -226,6 +227,56 @@ def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
     )
 
 
+def link_example(openapi: OpenAPI) -> None:
+    class LoginRespModel(response_model.JsonResponseModel):
+        class ResponseModel(BaseModel):  # type: ignore
+            class DataModel(BaseModel):
+                token: str
+
+            code: int = Field(0, description="api code")
+            msg: str = Field("success", description="api status msg")
+            data: DataModel
+
+        description: str = "login response"
+        response_data: Type[BaseModel] = ResponseModel
+
+    class LoginModel(BaseModel):
+        user: str = Field(description="user")
+        password: str = Field(description="user password")
+
+    openapi.add_api_model(
+        request_model.ApiModel(
+            path="/api/user/login",
+            http_method_list=["post"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            operation_id="user login",
+            summary="user login demo",
+            request_dict={
+                "body": [request_model.RequestModel(media_type_list=["application/json"], model=LoginModel)],
+            },
+            response_list=[LoginRespModel],
+        )
+    )
+
+    class HeaderWithLinkModel(BaseModel):
+        token: str = Field(
+            description="Token to be carried by the user to access the interface",
+            link=links.LinksModel(LoginRespModel, "$response.body#/data/token", desc="test links model"),
+        )
+
+    openapi.add_api_model(
+        request_model.ApiModel(
+            path="/api/user/logout",
+            http_method_list=["post"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            operation_id="user logout",
+            summary="user logout demo",
+            request_dict={"header": [request_model.RequestModel(model=HeaderWithLinkModel)]},
+            response_list=[SimpleRespModel],
+        )
+    )
+
+
 if __name__ == "__main__":
     my_openapi: OpenAPI = OpenAPI()
     get_request_openapi_example(my_openapi)
@@ -235,6 +286,7 @@ if __name__ == "__main__":
     multiform_request_openapi_example(my_openapi)
     post_request_openapi_example(my_openapi)
     post_and_has_query_request_openapi_example(my_openapi)
+    link_example(my_openapi)
     print(my_openapi.content())
     from any_api.openapi.to.markdown import Markdown
 

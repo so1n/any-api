@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, Type
+from collections import deque
+from typing import Deque, Dict, List, Optional, Type
 
 from pydantic import BaseModel
 from typing_extensions import Literal
@@ -41,6 +42,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         if tag_model_list:
             for tag_model in tag_model_list:
                 self._add_tag(tag_model)
+        self._api_model_deque: Deque[request_model.ApiModel] = deque()
 
     @classmethod
     def build(
@@ -336,6 +338,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         operation_model.responses = responses
 
     def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
+        self._api_model_deque.append(api_model)
+        return self
+
+    def _add_request_model_to_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
         path_dict: Dict[HttpMethodLiteral, openapi_model.OperationModel] = {}
         if api_model.path not in self._api_model.paths:
             self._api_model.paths[api_model.path] = path_dict
@@ -366,3 +372,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 self._response_handle(api_model, operation_model)
             path_dict[http_method] = operation_model
         return self
+
+    def _build_to_api_model(self) -> None:
+        while self._api_model_deque:
+            self._add_request_model_to_api_model(self._api_model_deque.popleft())

@@ -47,7 +47,7 @@ def any_api_get_model_name_map(unique_models: "TypeModelSet") -> Dict["TypeModel
     for model in unique_models:
         model_name = normalize_name(model.__name__)
         if model_name in global_conflicting_names:
-            model_name = get_long_model_name(model)
+            model_name = normalize_name(get_long_model_name(model))
             global_name_model_map[model_name] = model
         elif model_name in global_name_model_map:
             if global_name_model_map[model_name] == model:
@@ -55,8 +55,8 @@ def any_api_get_model_name_map(unique_models: "TypeModelSet") -> Dict["TypeModel
                 continue
             global_conflicting_names.add(model_name)
             conflicting_model = global_name_model_map.pop(model_name)
-            global_name_model_map[get_long_model_name(conflicting_model)] = conflicting_model
-            global_name_model_map[get_long_model_name(model)] = model
+            global_name_model_map[normalize_name(get_long_model_name(conflicting_model))] = conflicting_model
+            global_name_model_map[normalize_name(get_long_model_name(model))] = model
         else:
             global_name_model_map[model_name] = model
     return {v: k for k, v in global_name_model_map.items()}
