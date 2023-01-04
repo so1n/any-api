@@ -148,6 +148,26 @@ def gen_example_dict_from_schema(
     example_value_handle: Callable[[Any], Any] = _example_value_handle,
 ) -> Dict[str, Any]:
     gen_dict: Dict[str, Any] = {}
+
+    def _ref_handle(_key: str, _value_dict: dict) -> None:
+        if "items" in _value_dict:
+            model_key: str = _value_dict["items"]["$ref"].split("/")[-1]
+        else:
+            model_key = _value_dict["$ref"].split("/")[-1]
+        model_dict: dict = _definition_dict.get(model_key, {})
+        if "enum" in model_dict:
+            gen_dict[_key] = model_dict["enum"][0]
+        elif model_dict.get("type", None) == "object":
+            gen_dict[_key] = gen_example_dict_from_schema(
+                _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
+            )
+        else:
+            gen_dict[_key] = [
+                gen_example_dict_from_schema(
+                    _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
+                )
+            ]
+
     if "properties" not in schema_dict:
         return gen_dict
     property_dict: Dict[str, Any] = schema_dict["properties"]
@@ -158,12 +178,7 @@ def gen_example_dict_from_schema(
     for key, value in property_dict.items():
         if "items" in value and value["type"] == "array":
             if "$ref" in value["items"]:
-                model_key: str = value["items"]["$ref"].split("/")[-1]
-                gen_dict[key] = [
-                    gen_example_dict_from_schema(
-                        _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
-                    )
-                ]
+                _ref_handle(key, value)
             elif "example" in value:
                 gen_dict[key] = example_value_handle(value["example"])
             elif "default" in value:
@@ -171,10 +186,7 @@ def gen_example_dict_from_schema(
             else:
                 gen_dict[key] = []
         elif "$ref" in value:
-            model_key = value["$ref"].split("/")[-1]
-            gen_dict[key] = gen_example_dict_from_schema(
-                _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
-            )
+            _ref_handle(key, value)
         else:
             if "example" in value:
                 gen_dict[key] = example_value_handle(value["example"])

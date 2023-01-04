@@ -36,7 +36,7 @@ class BaseResponseModel(object):
     # response header
     header: Optional[BaseModel] = None
     # response status code
-    status_code: Union[Tuple[int], Literal["default"]] = (200,)
+    status_code: Union[Tuple[int, ...], Literal["default"]] = (200,)
 
     # The value of this response in openapi.schema
     # if value is empty,  will auto gen response model and set to openapi.schema
