@@ -78,6 +78,8 @@ class Markdown(object):
         if "oneOf" in schema:
             parameter_list.extend(self.request_body_handle(schema["oneOf"][0]))
             return parameter_list
+        if "properties" not in schema:
+            return parameter_list
         for name, property_dict in schema["properties"].items():
             name_prefix: str = nested * " "
             if name_prefix:

@@ -59,17 +59,26 @@ class SimpleRespModel(response_model.JsonResponseModel):
 
 
 class TextRespModel(response_model.TextResponseModel):
-    header: dict = {"X-Example-Type": "text"}
+    class HeaderModel(BaseModel):
+        x_example_type: str = Field(default="text", alias="X-Example-Type")
+
+    header: BaseModel = HeaderModel
     description: str = "text response"
 
 
 class HtmlRespModel(response_model.HtmlResponseModel):
-    header: dict = {"X-Example-Type": "html"}
+    class HeaderModel(BaseModel):
+        x_example_type: str = Field(default="html", alias="X-Example-Type")
+
+    header: BaseModel = HeaderModel
     description: str = "html response"
 
 
 class FileRespModel(response_model.FileResponseModel):
-    header: dict = {"X-Example-Type": "file"}
+    class HeaderModel(BaseModel):
+        x_example_type: str = Field(default="file", alias="X-Example-Type")
+
+    header: BaseModel = HeaderModel
     description: str = "file response"
 
 
@@ -113,6 +122,45 @@ def get_request_openapi_example(openapi: OpenAPI) -> None:
                 "header": [request_model.RequestModel(model=HeaderModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
+        )
+    )
+
+
+def text_response_openapi_example(openapi: OpenAPI) -> None:
+    openapi.add_api_model(
+        request_model.ApiModel(
+            path="/api/resp/text",
+            http_method_list=["get"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            summary="text response demo",
+            operation_id="text response",
+            response_list=[TextRespModel],
+        )
+    )
+
+
+def file_response_openapi_example(openapi: OpenAPI) -> None:
+    openapi.add_api_model(
+        request_model.ApiModel(
+            path="/api/resp/file",
+            http_method_list=["get"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            summary="file response demo",
+            operation_id="file response",
+            response_list=[FileRespModel],
+        )
+    )
+
+
+def html_response_openapi_example(openapi: OpenAPI) -> None:
+    openapi.add_api_model(
+        request_model.ApiModel(
+            path="/api/resp/html",
+            http_method_list=["get"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            summary="html response demo",
+            operation_id="html response",
+            response_list=[HtmlRespModel],
         )
     )
 
@@ -279,6 +327,9 @@ def link_example(openapi: OpenAPI) -> None:
 
 if __name__ == "__main__":
     my_openapi: OpenAPI = OpenAPI()
+    html_response_openapi_example(my_openapi)
+    file_response_openapi_example(my_openapi)
+    text_response_openapi_example(my_openapi)
     get_request_openapi_example(my_openapi)
     cookie_request_openapi_example(my_openapi)
     file_request_openapi_example(my_openapi)
