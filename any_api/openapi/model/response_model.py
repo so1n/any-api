@@ -56,6 +56,12 @@ class BaseResponseModel(object):
         return _resp_model_class_link_dict.get(self.__class__.__qualname__, {})
 
     @classmethod
+    def get_header_example_dict(cls) -> dict:
+        if not cls.header:
+            return {}
+        return gen_example_dict_from_schema(cls.header.schema())
+
+    @classmethod
     def register_link_schema(cls, link_model_dict: Dict[str, openapi_model.LinkModel]) -> None:
         if cls.__qualname__ not in _resp_model_class_link_dict:
             _resp_model_class_link_dict[cls.__qualname__] = {}
