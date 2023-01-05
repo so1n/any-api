@@ -93,12 +93,8 @@ class BaseAPI(Generic[_ModelT]):
             self._api_model.components[self._schema_key].update({global_model_name: schema_dict})
         return global_model_name, schema_dict
 
-    def _build_to_api_model(self) -> None:
-        raise NotImplementedError
-
     @property
     def model(self) -> _ModelT:
-        self._build_to_api_model()
         return self._api_model
 
     @property

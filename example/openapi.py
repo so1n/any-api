@@ -292,20 +292,6 @@ def link_example(openapi: OpenAPI) -> None:
         user: str = Field(description="user")
         password: str = Field(description="user password")
 
-    openapi.add_api_model(
-        request_model.ApiModel(
-            path="/api/user/login",
-            http_method_list=["post"],
-            tags=[openapi_model.TagModel(name="demo", description="test request")],
-            operation_id="user login",
-            summary="user login demo",
-            request_dict={
-                "body": [request_model.RequestModel(media_type_list=["application/json"], model=LoginModel)],
-            },
-            response_list=[LoginRespModel],
-        )
-    )
-
     class HeaderWithLinkModel(BaseModel):
         token: str = Field(
             description="Token to be carried by the user to access the interface",
@@ -321,7 +307,18 @@ def link_example(openapi: OpenAPI) -> None:
             summary="user logout demo",
             request_dict={"header": [request_model.RequestModel(model=HeaderWithLinkModel)]},
             response_list=[SimpleRespModel],
-        )
+        ),
+        request_model.ApiModel(
+            path="/api/user/login",
+            http_method_list=["post"],
+            tags=[openapi_model.TagModel(name="demo", description="test request")],
+            operation_id="user login",
+            summary="user login demo",
+            request_dict={
+                "body": [request_model.RequestModel(media_type_list=["application/json"], model=LoginModel)],
+            },
+            response_list=[LoginRespModel],
+        ),
     )
 
 

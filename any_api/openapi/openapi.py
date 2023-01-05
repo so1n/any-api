@@ -1,5 +1,4 @@
-from collections import deque
-from typing import Deque, Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel
 from typing_extensions import Literal
@@ -20,7 +19,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
         external_docs: Optional[openapi_model.ExternalDocumentationModel] = None,
-        security_dict: Optional[Dict[str, openapi_model.SecurityModelType]] = None
+        security_dict: Optional[Dict[str, openapi_model.SecurityModelType]] = None,
         # default_response: Optional[...] = None,  # TODO
     ):
         self._header_keyword_dict: Dict[str, str] = {
@@ -42,7 +41,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         if tag_model_list:
             for tag_model in tag_model_list:
                 self._add_tag(tag_model)
-        self._api_model_deque: Deque[request_model.ApiModel] = deque()
 
     @classmethod
     def build(
@@ -59,7 +57,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             external_docs=external_docs,
         )
 
-    def _header_handle(self, model: BaseModel) -> Dict[str, any_api.openapi.model.openapi.HeaderModel]:
+    def _header_handle(self, model: Type[BaseModel]) -> Dict[str, any_api.openapi.model.openapi.HeaderModel]:
         header_dict: Dict[str, any_api.openapi.model.openapi.HeaderModel] = {}
         for key, value in model.schema()["properties"].items():
             header_dict[key] = any_api.openapi.model.openapi.HeaderModel(
@@ -337,8 +335,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             responses[status_code_str].content = content_dict
         operation_model.responses = responses
 
-    def add_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
-        self._api_model_deque.append(api_model)
+    def add_api_model(self, *api_model_list: request_model.ApiModel) -> "OpenAPI":
+        for api_model in api_model_list:
+            self._add_request_model_to_api_model(api_model)
         return self
 
     def _add_request_model_to_api_model(self, api_model: request_model.ApiModel) -> "OpenAPI":
@@ -372,7 +371,3 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 self._response_handle(api_model, operation_model)
             path_dict[http_method] = operation_model
         return self
-
-    def _build_to_api_model(self) -> None:
-        while self._api_model_deque:
-            self._add_request_model_to_api_model(self._api_model_deque.popleft())
