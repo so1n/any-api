@@ -137,20 +137,21 @@ class ApiModel(BaseModel):
     @root_validator
     def after_init(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Data association after initializing data"""
-        request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = values["request_dict"]
-        for http_param_type_name, request_model_list in request_dict.items():
-            for request_model in request_model_list:
-                if isinstance(request_model.model, tuple):
-                    model_tuple: Tuple[Type[BaseModel]] = request_model.model
-                else:
-                    model_tuple = (request_model.model,)
-                for model in model_tuple:
-                    for field_name, field in model.__fields__.items():
-                        if "link" in field.field_info.extra:
-                            link_model: LinksModel = field.field_info.extra.pop("link")
-                            link_model.register(
-                                param_name=field.field_info.alias or field_name,
-                                http_param_type_name=http_param_type_name,
-                                operation_id=values["operation_id"],
-                            )
+        if values["request_dict"]:
+            request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = values["request_dict"]
+            for http_param_type_name, request_model_list in request_dict.items():
+                for request_model in request_model_list:
+                    if isinstance(request_model.model, tuple):
+                        model_tuple: Tuple[Type[BaseModel]] = request_model.model
+                    else:
+                        model_tuple = (request_model.model,)
+                    for model in model_tuple:
+                        for field_name, field in model.__fields__.items():
+                            if "link" in field.field_info.extra:
+                                link_model: LinksModel = field.field_info.extra.pop("link")
+                                link_model.register(
+                                    param_name=field.field_info.alias or field_name,
+                                    http_param_type_name=http_param_type_name,
+                                    operation_id=values["operation_id"],
+                                )
         return values
