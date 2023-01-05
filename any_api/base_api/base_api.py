@@ -93,6 +93,13 @@ class BaseAPI(Generic[_ModelT]):
             self._api_model.components[self._schema_key].update({global_model_name: schema_dict})
         return global_model_name, schema_dict
 
+    def _get_real_schema_dict(self, schema_dict: dict) -> dict:
+        if len(schema_dict) == 1 and "$ref" in schema_dict:
+            _, _, schema_key, key = schema_dict["$ref"].split("/")
+            return self._api_model.components[self._schema_key][key]
+        else:
+            return schema_dict
+
     @property
     def model(self) -> _ModelT:
         return self._api_model

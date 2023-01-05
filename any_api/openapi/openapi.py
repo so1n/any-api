@@ -143,7 +143,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
             if param_type == "multiform":
                 if media_type in content_dict:
-                    for key, value in content_dict[media_type].schema_.items():
+                    for key, value in self._get_real_schema_dict(content_dict[media_type].schema_).items():
                         if isinstance(value, list):
                             value.extend(schema_dict[key])
                         elif isinstance(value, dict):
@@ -159,8 +159,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                         **api_request_model.openapi_serialization
                     )
                     if "multipart/form-data" in content_dict:
-                        # TODO schema_ only key $ref
-                        content_dict[media_type].schema_["properties"][key][
+                        self._get_real_schema_dict(content_dict[media_type].schema_)["properties"][key][
                             "description"
                         ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
             else:
