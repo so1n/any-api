@@ -1,6 +1,6 @@
 import copy
 import json
-from typing import Any, Dict, Generic, Optional, Tuple, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, Optional, Tuple, Type, TypeVar
 
 from pydantic import BaseModel
 
@@ -114,16 +114,5 @@ class BaseAPI(Generic[_ModelT]):
         #     del openapi_dict["info"]["license"]
         return openapi_dict
 
-    def content(self, type_: str = "json", **kwargs: Any) -> str:
-        openapi_dict: dict = self.dict
-        if type_ == "json":
-            return json.dumps(openapi_dict, **kwargs)
-        elif type_ == "yaml":
-            try:
-                import yaml  # type: ignore
-
-                return yaml.dump(openapi_dict, **kwargs)
-            except ImportError:
-                raise RuntimeError("Please install yaml")
-        else:
-            raise ValueError(f"Not supoprt type:{type_}")
+    def content(self, serialization_callback: Callable = json.dumps, **kwargs: Any) -> str:
+        return serialization_callback(self.dict, **kwargs)
