@@ -35,13 +35,17 @@ class BaseResponseModel(object):
     # response description
     description: Optional[str] = None
     # response header
-    header: Optional[BaseModel] = None
+    header: Optional[Type[BaseModel]] = None
     # response status code
     status_code: Union[Tuple[int, ...], Literal["default"]] = (200,)
 
     # The value of this response in openapi.schema
     # if value is empty,  will auto gen response model and set to openapi.schema
     openapi_schema: Optional[dict] = None
+
+    @classmethod
+    def _get_example_dict(cls, model: Type[BaseModel]) -> dict:
+        return gen_example_dict_from_schema(model.schema())
 
     @classmethod
     def is_base_model_response_data(cls) -> bool:
@@ -59,7 +63,7 @@ class BaseResponseModel(object):
     def get_header_example_dict(cls) -> dict:
         if not cls.header:
             return {}
-        return gen_example_dict_from_schema(cls.header.schema())
+        return cls._get_example_dict(cls.header)
 
     @classmethod
     def register_link_schema(cls, link_model_dict: Dict[str, openapi_model.LinkModel]) -> None:
@@ -78,7 +82,7 @@ class JsonResponseModel(BaseResponseModel):
 
     @classmethod
     def get_example_value(cls, **extra: Any) -> dict:
-        return gen_example_dict_from_schema(cls.response_data.schema())
+        return cls._get_example_dict(cls.response_data)
 
 
 class XmlResponseModel(JsonResponseModel):
