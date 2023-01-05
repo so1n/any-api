@@ -3,11 +3,10 @@ from typing import Dict, List, Optional, Type
 from pydantic import BaseModel
 from typing_extensions import Literal
 
-import any_api.openapi.model.openapi
 from any_api.base_api.base_api import BaseAPI
 from any_api.openapi.model import openapi as openapi_model
 from any_api.openapi.model import request_model, response_model
-from any_api.openapi.model.util import HttpMethodLiteral
+from any_api.openapi.model.util import HttpMethodLiteral, HttpParamTypeLiteral
 
 __all__ = ["OpenAPI"]
 
@@ -57,10 +56,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             external_docs=external_docs,
         )
 
-    def _header_handle(self, model: Type[BaseModel]) -> Dict[str, any_api.openapi.model.openapi.HeaderModel]:
-        header_dict: Dict[str, any_api.openapi.model.openapi.HeaderModel] = {}
+    def _header_handle(self, model: Type[BaseModel]) -> Dict[str, openapi_model.HeaderModel]:
+        header_dict: Dict[str, openapi_model.HeaderModel] = {}
         for key, value in model.schema()["properties"].items():
-            header_dict[key] = any_api.openapi.model.openapi.HeaderModel(
+            header_dict[key] = openapi_model.HeaderModel(
                 description=value.get("description", ""),
                 required=key in model.schema().get("required", []),
                 deprecated=value.get("deprecated", False),
@@ -220,7 +219,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         api_model: request_model.ApiModel,
         operation_model: openapi_model.OperationModel,
     ) -> None:
-        for param_type in any_api.openapi.model.util.HttpParamTypeLiteral.__args__:  # type: ignore
+        for param_type in HttpParamTypeLiteral.__args__:  # type: ignore
             request_model_list = api_model.request_dict.get(param_type, [])
             if not request_model_list:
                 continue
