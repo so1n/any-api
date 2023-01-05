@@ -159,6 +159,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                         **api_request_model.openapi_serialization
                     )
                     if "multipart/form-data" in content_dict:
+                        # TODO schema_ only key $ref
                         content_dict[media_type].schema_["properties"][key][
                             "description"
                         ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
@@ -350,7 +351,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if http_method in path_dict:
                 raise ValueError(f"{http_method} already exists in {api_model.path}")
             operation_model: openapi_model.OperationModel = openapi_model.OperationModel(
-                operationId=api_model.operation_id,
+                operationId=f"{api_model.operation_id}_{http_method}"
+                if len(api_model.http_method_list) > 1
+                else api_model.operation_id,
                 deprecated=api_model.deprecated,
                 description=api_model.description,
                 summary=api_model.summary,
