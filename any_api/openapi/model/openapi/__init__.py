@@ -5,7 +5,7 @@ refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.
 """
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Extra, Field, root_validator
 from typing_extensions import Literal
 
 from ..util import HttpMethodLiteral
@@ -377,6 +377,9 @@ class OperationModel(BaseModel):
             "the default value would be a Server Object with a url value of /."
         ),
     )
+
+    class Config:
+        extra = Extra.allow
 
 
 class OpenAPIModel(BaseModel):
