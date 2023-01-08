@@ -147,8 +147,8 @@ class ApiModel(BaseModel):
                         model_tuple = (request_model.model,)
                     for model in model_tuple:
                         for field_name, field in model.__fields__.items():
-                            if "link" in field.field_info.extra:
-                                link_model: LinksModel = field.field_info.extra.pop("link")
+                            if "links" in field.field_info.extra:
+                                link_model: LinksModel = field.field_info.extra.pop("links")
                                 link_model.register(
                                     param_name=field.field_info.alias or field_name,
                                     http_param_type_name=http_param_type_name,
