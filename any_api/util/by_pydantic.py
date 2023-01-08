@@ -50,7 +50,7 @@ def any_api_get_model_name_map(unique_models: "TypeModelSet") -> Dict["TypeModel
             model_name = normalize_name(get_long_model_name(model))
             global_name_model_map[model_name] = model
         elif model_name in global_name_model_map:
-            if global_name_model_map[model_name] == model:
+            if global_name_model_map[model_name] is model:
                 # No additional processing for the same model
                 continue
             global_conflicting_names.add(model_name)

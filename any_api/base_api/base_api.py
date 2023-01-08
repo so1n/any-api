@@ -73,9 +73,16 @@ class BaseAPI(Generic[_ModelT]):
                 self._xml_handler(_schema_dict)
 
     def _schema_handle(
-        self, model: Type[BaseModel], enable_move_to_component: bool = True, is_xml_model: bool = False
+        self,
+        model: Type[BaseModel],
+        enable_move_to_component: bool = True,
+        is_xml_model: bool = False,
+        model_name: Optional[str] = None,
     ) -> Tuple[str, dict]:
         global_model_name = by_pydantic.get_model_global_name(model)
+        if model_name:
+            global_model_name = f"{model_name}_{global_model_name}"
+
         if (
             global_model_name in self._api_model.components[self._schema_key]
             and enable_move_to_component
@@ -83,6 +90,9 @@ class BaseAPI(Generic[_ModelT]):
         ):
             return global_model_name, self._api_model.components[self._schema_key][global_model_name]
         schema_dict: dict = copy.deepcopy(by_pydantic.any_api_model_schema(model))
+        # set custom title
+        if model_name is not None:
+            schema_dict["title"] = model_name
         if is_xml_model:
             self._xml_handler(schema_dict)
         self._replace_pydantic_definitions(schema_dict)

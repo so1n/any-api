@@ -259,11 +259,10 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 and issubclass(resp_model.response_data, BaseModel)
             ):
                 global_model_name, schema_dict = self._schema_handle(
-                    resp_model.response_data, is_xml_model="application/xml" == resp_model.media_type
+                    resp_model.response_data,
+                    is_xml_model="application/xml" == resp_model.media_type,
+                    model_name=resp_model.name,
                 )
-                # set custom title
-                if resp_model.name is not None:
-                    schema_dict["title"] = resp_model.name
 
             if isinstance(resp_model.status_code, str):
                 # support status_code is default
