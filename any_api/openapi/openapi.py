@@ -226,7 +226,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             for api_request_model in request_model_list:
                 if param_type in ("cookie", "header", "path", "query"):
                     self._parameter_handle(param_type, operation_model, api_request_model)
-                elif param_type in ("body", "form", "multiform"):
+                elif param_type in ("body", "form", "json", "multiform"):
                     if not api_request_model.media_type_list:
                         raise ValueError(f"Can not found {param_type} `model's media_type`")
                     self._body_handle(param_type, operation_model, api_request_model)
