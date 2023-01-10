@@ -137,7 +137,7 @@ class ApiModel(BaseModel):
     @root_validator
     def after_init(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Data association after initializing data"""
-        if values["request_dict"]:
+        if "request_dict" in values:
             request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = values["request_dict"]
             for http_param_type_name, request_model_list in request_dict.items():
                 for request_model in request_model_list:

@@ -295,7 +295,7 @@ def link_example(openapi: OpenAPI) -> None:
     class HeaderWithLinkModel(BaseModel):
         token: str = Field(
             description="Token to be carried by the user to access the interface",
-            link=links.LinksModel(LoginRespModel, "$response.body#/data/token", desc="test links model"),
+            links=links.LinksModel(LoginRespModel, "$response.body#/data/token", desc="test links model"),
         )
 
     openapi.add_api_model(
