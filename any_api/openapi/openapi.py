@@ -224,7 +224,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
             if not request_model_list:
                 continue
             for api_request_model in request_model_list:
-                if param_type in ("cookie", "header", "path", "query"):
+                if param_type in ("cookie", "header", "path", "query", "multiquery", "multiheader"):
                     self._parameter_handle(param_type, operation_model, api_request_model)
                 elif param_type in ("body", "form", "json", "multiform"):
                     if not api_request_model.media_type_list:
