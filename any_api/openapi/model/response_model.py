@@ -44,7 +44,7 @@ class BaseResponseModel(object):
     openapi_schema: Optional[dict] = None
 
     @classmethod
-    def _get_example_dict(cls, model: Type[BaseModel]) -> dict:
+    def _get_example_dict(cls, model: Type[BaseModel], **extra: Any) -> dict:
         return gen_example_dict_from_schema(model.schema())
 
     @classmethod
@@ -60,10 +60,10 @@ class BaseResponseModel(object):
         return _resp_model_class_link_dict.get(self.__class__.__qualname__, {})
 
     @classmethod
-    def get_header_example_dict(cls) -> dict:
+    def get_header_example_dict(cls, **extra: Any) -> dict:
         if not cls.header:
             return {}
-        return cls._get_example_dict(cls.header)
+        return cls._get_example_dict(cls.header, **extra)
 
     @classmethod
     def register_link_schema(cls, link_model_dict: Dict[str, openapi_model.LinkModel]) -> None:
@@ -82,7 +82,7 @@ class JsonResponseModel(BaseResponseModel):
 
     @classmethod
     def get_example_value(cls, **extra: Any) -> dict:
-        return cls._get_example_dict(cls.response_data)
+        return cls._get_example_dict(cls.response_data, **extra)
 
 
 class XmlResponseModel(JsonResponseModel):
