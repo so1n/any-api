@@ -3,8 +3,10 @@ from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
 
+from any_api.openapi import OpenAPI
+from any_api.openapi.model import ApiModel
 from any_api.openapi.model import openapi as openapi_model
-from any_api.openapi.openapi import OpenAPI, request_model, response_model
+from any_api.openapi.model import requests, responses
 from any_api.util.by_pydantic import create_pydantic_model
 
 # copy from https://petstore3.swagger.io/api/v3/openapi.json
@@ -109,17 +111,17 @@ class ApiResponse(BaseModel):
 ############
 # response #
 ############
-class ApiJsonResponse(response_model.JsonResponseModel):
+class ApiJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = ApiResponse
 
 
-class PetSuccessfulJsonResponse(response_model.JsonResponseModel):
+class PetSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = Pet
 
 
-class PetSuccessfulXmlResponse(response_model.XmlResponseModel):
+class PetSuccessfulXmlResponse(responses.XmlResponseModel):
     description = "Successful operation"
     response_data = Pet
 
@@ -128,34 +130,34 @@ class SuccessfulOperationAndSchemaJsonResponse(PetSuccessfulJsonResponse):
     openapi_schema = {"type": "object", "additionalProperties": {"type": "integer", "format": "int32"}}
 
 
-class UserSuccessfulJsonResponse(response_model.JsonResponseModel):
+class UserSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = User
 
 
-class UserSuccessfulXmlResponse(response_model.XmlResponseModel):
+class UserSuccessfulXmlResponse(responses.XmlResponseModel):
     description = "Successful operation"
     response_data = User
 
 
-class DefaultSuccessfulJsonResponse(response_model.JsonResponseModel):
-    description = "Successful operation"
-    response_data = User
-    status_code = "default"  # type: ignore
-
-
-class DefaultSuccessfulXmlResponse(response_model.XmlResponseModel):
+class DefaultSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = User
     status_code = "default"  # type: ignore
 
 
-class OrderSuccessfulJsonResponse(response_model.JsonResponseModel):
+class DefaultSuccessfulXmlResponse(responses.XmlResponseModel):
+    description = "Successful operation"
+    response_data = User
+    status_code = "default"  # type: ignore
+
+
+class OrderSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = Order
 
 
-class MyJsonResponse(response_model.BaseResponseModel):
+class MyJsonResponse(responses.BaseResponseModel):
     class HeaderModel(BaseModel):
         rate_limit: int = Field(
             default=None, alias="X-Rate-Limit", description="calls per hour allowed by the user", format="int32"
@@ -174,15 +176,15 @@ class MyXmlResponse(MyJsonResponse):
     media_type: str = "application/xml"
 
 
-class DefaultResponse(response_model.BaseResponseModel):
+class DefaultResponse(responses.BaseResponseModel):
     status_code = "default"  # type: ignore
     description = "successful operation"
     response_data = None
 
 
-def create_response_type(description: str, status_code: int) -> Type[request_model.BaseResponseModel]:
+def create_response_type(description: str, status_code: int) -> Type[responses.BaseResponseModel]:
     return type(  # type: ignore
-        description, (request_model.BaseResponseModel,), {"description": description, "status_code": (status_code,)}
+        description, (responses.BaseResponseModel,), {"description": description, "status_code": (status_code,)}
     )
 
 
@@ -226,7 +228,7 @@ pet_store_openapi: OpenAPI = OpenAPI(
     server_model_list=[openapi_model.basic.ServerModel(url="/api/v3")],
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet",
         http_method_list=["put"],
         tags=[pet_tag],
@@ -235,14 +237,14 @@ pet_store_openapi.add_api_model(
         operation_id="updatePet",
         request_dict={
             "body": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     required=True,
                     description="Update an existent pet in the store",
                     media_type_list=["application/json", "application/xml"],
                     model=Pet,
                 ),
             ],
-            "form": [request_model.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
+            "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
         },
         response_list=[
             PetSuccessfulJsonResponse,
@@ -255,7 +257,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet",
         http_method_list=["post"],
         tags=[pet_tag],
@@ -264,9 +266,9 @@ pet_store_openapi.add_api_model(
         operation_id="addPet",
         request_dict={
             "body": [
-                request_model.RequestModel(media_type_list=["application/json", "application/xml"], model=Pet),
+                requests.RequestModel(media_type_list=["application/json", "application/xml"], model=Pet),
             ],
-            "form": [request_model.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
+            "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
         },
         response_list=[
             PetSuccessfulJsonResponse,
@@ -277,7 +279,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/findByStatus",
         http_method_list=["get"],
         tags=[pet_tag],
@@ -286,7 +288,7 @@ pet_store_openapi.add_api_model(
         operation_id="findPetsByStatus",
         request_dict={
             "query": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "name": (
@@ -311,7 +313,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/findByTags",
         http_method_list=["get"],
         tags=[pet_tag],
@@ -320,7 +322,7 @@ pet_store_openapi.add_api_model(
         operation_id="findPetsByTags",
         request_dict={
             "query": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "tags": (
@@ -341,7 +343,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/{petId}",
         http_method_list=["get"],
         tags=[pet_tag],
@@ -350,7 +352,7 @@ pet_store_openapi.add_api_model(
         operation_id="getPetById",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "petId": (
@@ -372,7 +374,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/{petId}",
         http_method_list=["post"],
         tags=[pet_tag],
@@ -380,7 +382,7 @@ pet_store_openapi.add_api_model(
         operation_id="updatePetWithForm",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "petId": (
@@ -392,7 +394,7 @@ pet_store_openapi.add_api_model(
                 )
             ],
             "query": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "name": (str, Field(description="Name of pet that needs to be updated")),
@@ -407,7 +409,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/{petId}",
         http_method_list=["delete"],
         tags=[pet_tag],
@@ -415,11 +417,11 @@ pet_store_openapi.add_api_model(
         summary="Deletes a pet",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model({"petId": (int, Field(description="Pet id to delete", format="int64"))})
                 )
             ],
-            "header": [request_model.RequestModel(model=create_pydantic_model({"api_key": (str, Field())}))],
+            "header": [requests.RequestModel(model=create_pydantic_model({"api_key": (str, Field())}))],
         },
         response_list=[
             create_response_type("Invalid pet value", 400),
@@ -428,7 +430,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/pet/{petId}/uploadImage",
         http_method_list=["post"],
         tags=[pet_tag],
@@ -436,7 +438,7 @@ pet_store_openapi.add_api_model(
         operation_id="uploadId",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "petId": (
@@ -448,12 +450,12 @@ pet_store_openapi.add_api_model(
                 )
             ],
             "query": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model({"additionalMetadata": (str, Field(description="Additional Metadata"))})
                 )
             ],
             "body": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     media_type_list=["application/octet-stream"],
                     model=create_pydantic_model({"fake": (str, Field(format="binary"))}),
                     model_key="fake",
@@ -465,7 +467,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/store/inventory",
         tags=[store_tag],
         http_method_list=["get"],
@@ -477,7 +479,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/store/order",
         http_method_list=["post"],
         tags=[store_tag],
@@ -485,14 +487,14 @@ pet_store_openapi.add_api_model(
         description="Place a new order in the store",
         operation_id="placeOrder",
         request_dict={
-            "body": [request_model.RequestModel(media_type_list=["application/json", "application/xml"], model=Order)],
-            "form": [request_model.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Order)],
+            "body": [requests.RequestModel(media_type_list=["application/json", "application/xml"], model=Order)],
+            "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Order)],
         },
         response_list=[OrderSuccessfulJsonResponse, create_response_type("Invalid input", 405)],
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/store/order/{orderId}",
         http_method_list=["get"],
         tags=[store_tag],
@@ -503,7 +505,7 @@ pet_store_openapi.add_api_model(
         operation_id="getOrderById",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "orderId": (
@@ -524,7 +526,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/store/order/{orderId}",
         http_method_list=["delete"],
         tags=[store_tag],
@@ -536,7 +538,7 @@ pet_store_openapi.add_api_model(
         operation_id="deleteOrder",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "orderId": (
@@ -555,7 +557,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user",
         http_method_list=["post"],
         tags=[user_tag],
@@ -563,21 +565,21 @@ pet_store_openapi.add_api_model(
         description="This can only be done by the logged in user.",
         operation_id="createUser",
         request_dict={
-            "body": [request_model.RequestModel(media_type_list=["application/json", "application/xml"], model=User)],
-            "form": [request_model.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=User)],
+            "body": [requests.RequestModel(media_type_list=["application/json", "application/xml"], model=User)],
+            "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=User)],
         },
         response_list=[DefaultSuccessfulJsonResponse, DefaultSuccessfulXmlResponse],
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/createWithList",
         http_method_list=["post"],
         tags=[user_tag],
         summary="Creates list of users with given input array",
         description="Creates list of users with given input array",
         operation_id="createUsersWithListInput",
-        request_dict={"body": [request_model.RequestModel(media_type_list=["application/json"], model=(User,))]},
+        request_dict={"body": [requests.RequestModel(media_type_list=["application/json"], model=(User,))]},
         response_list=[
             UserSuccessfulXmlResponse,
             UserSuccessfulJsonResponse,
@@ -586,7 +588,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/login",
         http_method_list=["get"],
         tags=[user_tag],
@@ -594,7 +596,7 @@ pet_store_openapi.add_api_model(
         operation_id="loginUser",
         request_dict={
             "query": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "username": (str, Field(None, description="The user name for login")),
@@ -612,7 +614,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/logout",
         http_method_list=["get"],
         tags=[user_tag],
@@ -622,7 +624,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/{username}",
         http_method_list=["get"],
         tags=[user_tag],
@@ -630,7 +632,7 @@ pet_store_openapi.add_api_model(
         operation_id="getUserByName",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model(
                         {
                             "username": (
@@ -651,7 +653,7 @@ pet_store_openapi.add_api_model(
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/{username}",
         tags=[user_tag],
         http_method_list=["put"],
@@ -660,18 +662,18 @@ pet_store_openapi.add_api_model(
         operation_id="updateUser",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model({"username": (str, Field(description="name that need to be deleted"))})
                 )
             ],
-            "body": [request_model.RequestModel(media_type_list=["application/json", "application/xml"], model=User)],
-            "form": [request_model.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=User)],
+            "body": [requests.RequestModel(media_type_list=["application/json", "application/xml"], model=User)],
+            "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=User)],
         },
         response_list=[DefaultResponse],
     )
 )
 pet_store_openapi.add_api_model(
-    request_model.ApiModel(
+    ApiModel(
         path="/user/{username}",
         http_method_list=["delete"],
         tags=[user_tag],
@@ -680,7 +682,7 @@ pet_store_openapi.add_api_model(
         operation_id="deleteUser",
         request_dict={
             "path": [
-                request_model.RequestModel(
+                requests.RequestModel(
                     model=create_pydantic_model({"username": (str, Field(description="name that need to be deleted"))})
                 )
             ],
@@ -692,7 +694,6 @@ pet_store_openapi.add_api_model(
     )
 )
 if __name__ == "__main__":
-
     print(pet_store_openapi.content())
     # from any_api.openapi.to.markdown import Markdown
     #

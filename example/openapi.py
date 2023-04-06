@@ -3,9 +3,9 @@ from typing import Any, List, Type
 
 from pydantic import BaseModel, Field
 
-from any_api.openapi.model import links
+from any_api.openapi.model import ApiModel, links
 from any_api.openapi.model import openapi as openapi_model
-from any_api.openapi.openapi import OpenAPI, request_model, response_model
+from any_api.openapi.openapi import OpenAPI, requests, responses
 
 
 class SexEnum(str, Enum):
@@ -48,7 +48,7 @@ class DemoUserDataModel(SimpleModel):
         use_enum_values = True
 
 
-class SimpleRespModel(response_model.JsonResponseModel):
+class SimpleRespModel(responses.JsonResponseModel):
     class ResponseModel(BaseModel):
         code: int = Field(0, description="api code")
         msg: str = Field("success", description="api status msg")
@@ -58,7 +58,7 @@ class SimpleRespModel(response_model.JsonResponseModel):
     response_data: Type[BaseModel] = ResponseModel
 
 
-class TextRespModel(response_model.TextResponseModel):
+class TextRespModel(responses.TextResponseModel):
     class HeaderModel(BaseModel):
         x_example_type: str = Field(default="text", alias="X-Example-Type")
 
@@ -66,7 +66,7 @@ class TextRespModel(response_model.TextResponseModel):
     description: str = "text response"
 
 
-class HtmlRespModel(response_model.HtmlResponseModel):
+class HtmlRespModel(responses.HtmlResponseModel):
     class HeaderModel(BaseModel):
         x_example_type: str = Field(default="html", alias="X-Example-Type")
 
@@ -74,7 +74,7 @@ class HtmlRespModel(response_model.HtmlResponseModel):
     description: str = "html response"
 
 
-class FileRespModel(response_model.FileResponseModel):
+class FileRespModel(responses.FileResponseModel):
     class HeaderModel(BaseModel):
         x_example_type: str = Field(default="file", alias="X-Example-Type")
 
@@ -88,7 +88,7 @@ class ResponseModel(BaseModel):
     msg: str = Field("success", description="api status msg")
 
 
-class UserSuccessRespModel(response_model.JsonResponseModel):
+class UserSuccessRespModel(responses.JsonResponseModel):
     class ResponseModel(ResponseModel):  # type: ignore
         class DataModel(BaseModel):
             uid: int = Field(description="user id", gt=10, lt=1000, example=666)
@@ -111,15 +111,15 @@ class UserSuccessRespModel(response_model.JsonResponseModel):
 
 def get_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/info",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="get request demo",
             operation_id="get",
             request_dict={
-                "query": [request_model.RequestModel(model=DemoUserDataModel)],
-                "header": [request_model.RequestModel(model=HeaderModel)],
+                "query": [requests.RequestModel(model=DemoUserDataModel)],
+                "header": [requests.RequestModel(model=HeaderModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
@@ -128,7 +128,7 @@ def get_request_openapi_example(openapi: OpenAPI) -> None:
 
 def text_response_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/resp/text",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -141,7 +141,7 @@ def text_response_openapi_example(openapi: OpenAPI) -> None:
 
 def file_response_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/resp/file",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -154,7 +154,7 @@ def file_response_openapi_example(openapi: OpenAPI) -> None:
 
 def html_response_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/resp/html",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -167,13 +167,13 @@ def html_response_openapi_example(openapi: OpenAPI) -> None:
 
 def cookie_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/extra-info",
             http_method_list=["get"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="cookie request demo",
             operation_id="cookie",
-            request_dict={"cookie": [request_model.RequestModel(model=HeaderModel)]},
+            request_dict={"cookie": [requests.RequestModel(model=HeaderModel)]},
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
     )
@@ -181,14 +181,14 @@ def cookie_request_openapi_example(openapi: OpenAPI) -> None:
 
 def file_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/upload-file",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             summary="file request demo",
             operation_id="file",
             request_dict={
-                "file": [request_model.RequestModel(media_type_list=["multipart/form-data"], model=FileModel)],
+                "file": [requests.RequestModel(media_type_list=["multipart/form-data"], model=FileModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
@@ -197,7 +197,7 @@ def file_request_openapi_example(openapi: OpenAPI) -> None:
 
 def form_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/info-form",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -205,7 +205,7 @@ def form_request_openapi_example(openapi: OpenAPI) -> None:
             operation_id="form",
             request_dict={
                 "form": [
-                    request_model.RequestModel(
+                    requests.RequestModel(
                         media_type_list=["application/x-www-form-urlencoded"], model=DemoUserDataModel
                     )
                 ],
@@ -217,7 +217,7 @@ def form_request_openapi_example(openapi: OpenAPI) -> None:
 
 def multiform_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/info-multiform",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -225,7 +225,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
             operation_id="multiform",
             request_dict={
                 "multiform": [
-                    request_model.RequestModel(
+                    requests.RequestModel(
                         media_type_list=["application/x-www-form-urlencoded"],
                         openapi_serialization={"style": "form", "explode": True},
                         model=MultiFromModel,
@@ -239,7 +239,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
 
 def post_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/borrow-book",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
@@ -247,10 +247,10 @@ def post_request_openapi_example(openapi: OpenAPI) -> None:
             operation_id="post",
             request_dict={
                 "body": [
-                    request_model.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel),
-                    request_model.RequestModel(media_type_list=["application/json"], model=BookModel),
+                    requests.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel),
+                    requests.RequestModel(media_type_list=["application/json"], model=BookModel),
                 ],
-                "header": [request_model.RequestModel(model=HeaderModel)],
+                "header": [requests.RequestModel(model=HeaderModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
@@ -259,16 +259,16 @@ def post_request_openapi_example(openapi: OpenAPI) -> None:
 
 def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/borrow-book/v2",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             operation_id="post_and_has_query",
             summary="post and has query request demo",
             request_dict={
-                "query": [request_model.RequestModel(model=BookModel)],
-                "body": [request_model.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel)],
-                "header": [request_model.RequestModel(model=HeaderModel)],
+                "query": [requests.RequestModel(model=BookModel)],
+                "body": [requests.RequestModel(media_type_list=["application/json"], model=DemoUserDataModel)],
+                "header": [requests.RequestModel(model=HeaderModel)],
             },
             response_list=[SimpleRespModel, UserSuccessRespModel],
         )
@@ -276,7 +276,7 @@ def post_and_has_query_request_openapi_example(openapi: OpenAPI) -> None:
 
 
 def link_example(openapi: OpenAPI) -> None:
-    class LoginRespModel(response_model.JsonResponseModel):
+    class LoginRespModel(responses.JsonResponseModel):
         class ResponseModel(BaseModel):  # type: ignore
             class DataModel(BaseModel):
                 token: str
@@ -299,23 +299,23 @@ def link_example(openapi: OpenAPI) -> None:
         )
 
     openapi.add_api_model(
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/logout",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             operation_id="user logout",
             summary="user logout demo",
-            request_dict={"header": [request_model.RequestModel(model=HeaderWithLinkModel)]},
+            request_dict={"header": [requests.RequestModel(model=HeaderWithLinkModel)]},
             response_list=[SimpleRespModel],
         ),
-        request_model.ApiModel(
+        ApiModel(
             path="/api/user/login",
             http_method_list=["post"],
             tags=[openapi_model.TagModel(name="demo", description="test request")],
             operation_id="user login",
             summary="user login demo",
             request_dict={
-                "body": [request_model.RequestModel(media_type_list=["application/json"], model=LoginModel)],
+                "body": [requests.RequestModel(media_type_list=["application/json"], model=LoginModel)],
             },
             response_list=[LoginRespModel],
         ),

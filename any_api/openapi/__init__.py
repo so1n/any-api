@@ -1,3 +1,4 @@
+from .model import ApiModel
 from .model import openapi as openapi_model
 from .model.openapi import (
     Contact,
@@ -12,8 +13,8 @@ from .model.openapi import (
     ServerModel,
     TagModel,
 )
-from .model.request_model import ApiModel, RequestModel
-from .model.response_model import (
+from .model.requests import RequestModel
+from .model.responses import (
     BaseResponseModel,
     FileResponseModel,
     HtmlResponseModel,

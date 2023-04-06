@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from any_api.openapi.model import openapi as openapi_model
 
 if TYPE_CHECKING:
-    from .response_model import BaseResponseModel
+    from .response import BaseResponseModel
 
 
 __all__ = ["LinksModel"]

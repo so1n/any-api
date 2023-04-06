@@ -103,10 +103,10 @@ def any_api_model_schema(
 def create_pydantic_model(
     annotation_dict: Dict[str, Tuple[Type, Any]],
     class_name: str = "DynamicModel",
-    pydantic_config: Type["BaseConfig"] = None,
-    pydantic_base: Type["BaseModel"] = None,
+    pydantic_config: Optional[Type["BaseConfig"]] = None,
+    pydantic_base: Optional[Type["BaseModel"]] = None,
     pydantic_module: str = "pydantic.main",
-    pydantic_validators: Dict[str, classmethod] = None,
+    pydantic_validators: Optional[Dict[str, classmethod]] = None,
 ) -> Type["BaseModel"]:
     """pydantic self.pait_response_model helper
     if use create_model('DynamicModel', **annotation_dict), mypy will tip error
