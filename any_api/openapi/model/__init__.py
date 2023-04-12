@@ -88,20 +88,6 @@ class ApiModel(BaseModel):
             raise ValueError("path must start with `/`")
         return path
 
-    @validator("response_list")
-    def validate_core_response(
-        cls, response_list: List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]]
-    ) -> List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]]:
-        cnt: int = 0
-        for response in response_list:
-            if isinstance(response, tuple):
-                response = response[0]
-            if response.is_core is True:
-                cnt += 1
-        if cnt > 1:
-            raise ValueError("only one core response model")
-        return response_list
-
     def add_to_operation_model(self, openapi_model: OperationModel) -> None:
         pass
 

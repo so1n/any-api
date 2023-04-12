@@ -22,9 +22,6 @@ _resp_model_class_link_dict: Dict[str, Dict[str, openapi_model.LinkModel]] = {}
 class BaseResponseModel(object):
     """response model https://swagger.io/docs/specification/describing-responses/"""
 
-    # Used for mock response and response checking to determine if the response model is the core response model
-    is_core: bool = False
-
     # response data
     response_data: Union[Type[BaseModel], str, bytes, None]
     # response media type

@@ -240,7 +240,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
         operation_model: openapi_model.OperationModel,
     ) -> None:
         response_schema_dict: Dict[tuple, List[dict]] = {}
-        core_resp_model: Optional[responses.BaseResponseModel] = None
         response_dict = operation_model.responses
 
         for resp_model_class in api_model.response_list:
@@ -250,8 +249,6 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel]):
                 resp_model_class = resp_model_class[0]
 
             resp_model: responses.BaseResponseModel = resp_model_class()
-            if core_resp_model is None or core_resp_model.is_core:
-                core_resp_model = resp_model
 
             global_model_name: str = ""
             if (
