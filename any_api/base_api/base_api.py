@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from any_api.base_api.model.base_api_model import BaseAPIModel, BaseSecurityModel
 from any_api.openapi.model.openapi import TagModel
+from any_api.openapi.model.openapi.security import UserScopesOauth2SecurityModel
 from any_api.util import by_pydantic
 
 __all__ = ["BaseAPI"]
@@ -31,12 +32,19 @@ class BaseAPI(Generic[_ModelT]):
 
     def _add_security(self, security_model_dict: Dict[str, BaseSecurityModel]) -> None:
         if "securitySchemes" not in self._api_model.components:
-            self._api_model.components["securitySchemes"] = security_model_dict
+            new_security_model_dict: Dict[str, BaseSecurityModel] = {}
+            for security_key, security_model in security_model_dict.items():
+                if isinstance(security_model, UserScopesOauth2SecurityModel):
+                    security_model = security_model.model
+                new_security_model_dict[security_key] = security_model
+            self._api_model.components["securitySchemes"] = new_security_model_dict
         else:
             for security_key, security_model in security_model_dict.items():
+                if isinstance(security_model, UserScopesOauth2SecurityModel):
+                    security_model = security_model.model
                 if security_key in self._api_model.components["securitySchemes"]:
                     if self._api_model.components["securitySchemes"][security_key] != security_model:
-                        raise KeyError(f"{security_key}already exists, and the security model is the same")
+                        raise KeyError(f"{security_key} already exists, and the security model is the same")
                 else:
                     self._api_model.components["securitySchemes"][security_key] = security_model
 

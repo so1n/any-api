@@ -98,6 +98,27 @@ class Oauth2SecurityModel(BaseSecurityModel):
         return scope_list
 
 
+class UserScopesOauth2SecurityModel(Oauth2SecurityModel):
+    use_scopes: List[str] = Field(description="Scope for the real use Oauth2SecurityModel", default_factory=list)
+    model: Oauth2SecurityModel = Field(description="Parent Oauth2SecurityModel")
+
+    @root_validator(pre=True)
+    def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
+        model: Oauth2SecurityModel = values["model"]
+        values["flows"] = model.flows
+        all_scopes = model.get_security_scope()
+        scopes = values["use_scopes"]
+        _scopes_set = set(scopes) - set(all_scopes)
+        if len(_scopes_set) > 0:
+            raise ValueError(f"{_scopes_set} not in {all_scopes}")
+        return values
+
+    def get_security_scope(self) -> List[str]:
+        if self.use_scopes:
+            return self.use_scopes
+        return self.model.get_security_scope()
+
+
 class HttpSecurityModel(BaseSecurityModel):
     scheme: str = Field(
         description=(

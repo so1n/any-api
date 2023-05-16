@@ -101,7 +101,7 @@ def any_api_model_schema(
 
 
 def create_pydantic_model(
-    annotation_dict: Dict[str, Tuple[Type, Any]],
+    annotation_dict: Optional[Dict[str, Tuple[Type, Any]]] = None,
     class_name: str = "DynamicModel",
     pydantic_config: Optional[Type["BaseConfig"]] = None,
     pydantic_base: Optional[Type["BaseModel"]] = None,
@@ -117,7 +117,7 @@ def create_pydantic_model(
         __base__=pydantic_base,
         __module__=pydantic_module,
         __validators__=pydantic_validators,
-        **annotation_dict,
+        **(annotation_dict or {}),
     )
 
 
