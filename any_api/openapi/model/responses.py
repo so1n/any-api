@@ -23,12 +23,12 @@ class BaseResponseModel(object):
     """response model https://swagger.io/docs/specification/describing-responses/"""
 
     # response data
-    response_data: Union[Type[BaseModel], str, bytes, None]
+    response_data: Union[Type[BaseModel], str, bytes, None] = None
     # response media type
     media_type: str = "*/*"
 
-    # response name, if the value is empty, the name of the response_data object will be used
-    name: Optional[str] = None
+    # # response name, if the value is empty, the name of the response_data object will be used
+    # name: Optional[str] = None
     # response description
     description: Optional[str] = None
     # response header

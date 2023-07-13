@@ -1,0 +1,923 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "AnyApi",
+    "description": "API Documentation",
+    "version": "0.0.1"
+  },
+  "servers": [],
+  "paths": {
+    "/api/resp/html": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "html response demo",
+        "description": "",
+        "operationId": "html response",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "html response",
+            "headers": {
+              "X-Example-Type": {
+                "description": "",
+                "required": false,
+                "deprecated": false,
+                "schema": {
+                  "default": "html",
+                  "type": "string"
+                },
+                "explode": false
+              }
+            },
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string",
+                  "example": "<h1> example html</h1>"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/resp/file": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "file response demo",
+        "description": "",
+        "operationId": "file response",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "file response",
+            "headers": {
+              "X-Example-Type": {
+                "description": "",
+                "required": false,
+                "deprecated": false,
+                "schema": {
+                  "default": "file",
+                  "type": "string"
+                },
+                "explode": false
+              }
+            },
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/resp/text": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "text response demo",
+        "description": "",
+        "operationId": "text response",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "text response",
+            "headers": {
+              "X-Example-Type": {
+                "description": "",
+                "required": false,
+                "deprecated": false,
+                "schema": {
+                  "default": "text",
+                  "type": "string"
+                },
+                "explode": false
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "example data"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/info": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "get request demo",
+        "description": "",
+        "operationId": "get",
+        "parameters": [
+          {
+            "description": "Token to be carried by the user to access the interface",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "token",
+            "in": "header"
+          },
+          {
+            "description": "user id",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "exclusiveMinimum": 10,
+              "exclusiveMaximum": 1000,
+              "example": 666,
+              "type": "integer"
+            },
+            "explode": false,
+            "name": "uid",
+            "in": "query"
+          },
+          {
+            "description": "user name",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "maxLength": 10,
+              "minLength": 2,
+              "example": "mock_name",
+              "type": "string"
+            },
+            "explode": false,
+            "name": "user_name",
+            "in": "query"
+          },
+          {
+            "description": "",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "$ref": "#/components/schemas/ExtendInfoModel"
+            },
+            "explode": false,
+            "name": "extend_info",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/extra-info": {
+      "get": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "cookie request demo",
+        "description": "",
+        "operationId": "cookie",
+        "parameters": [
+          {
+            "description": "Token to be carried by the user to access the interface \n>Note for Swagger UI and Swagger Editor users:  \n>Cookie authentication iscurrently not supported for \"try it out\" requests due to browser securityrestrictions. See [this issue](https://github.com/swagger-api/swagger-js/issues/1163)for more information. [SwaggerHub](https://swagger.io/tools/swaggerhub/)does not have this limitation. ",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "token",
+            "in": "cookie"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/upload-file": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "file request demo",
+        "description": "",
+        "operationId": "file",
+        "parameters": [],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "upload_file": {
+                    "title": "Upload File",
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/info-form": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "form request demo",
+        "description": "",
+        "operationId": "form",
+        "parameters": [],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoUserDataModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/info-multiform": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "multiform request demo",
+        "description": "",
+        "operationId": "multiform",
+        "parameters": [],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "title": "MultiFromModel",
+                "type": "object",
+                "properties": {
+                  "mobile": {
+                    "title": "Mobile",
+                    "description": "Mobile",
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "mobile"
+                ]
+              },
+              "encoding": {
+                "mobile": {
+                  "contentType": "",
+                  "headers": {},
+                  "style": "form",
+                  "explode": true
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/borrow-book": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "post request demo",
+        "description": "",
+        "operationId": "post",
+        "parameters": [
+          {
+            "description": "Token to be carried by the user to access the interface",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "token",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/DemoUserDataModel"
+                  },
+                  {
+                    "$ref": "#/components/schemas/BookModel"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/borrow-book/v2": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "post and has query request demo",
+        "description": "",
+        "operationId": "post_and_has_query",
+        "parameters": [
+          {
+            "description": "Token to be carried by the user to access the interface",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "token",
+            "in": "header"
+          },
+          {
+            "description": "book isbn",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "isbn",
+            "in": "query"
+          },
+          {
+            "description": "book name",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "name",
+            "in": "query"
+          }
+        ],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoUserDataModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "success response|success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                    },
+                    {
+                      "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/logout": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "user logout demo",
+        "description": "",
+        "operationId": "user logout",
+        "parameters": [
+          {
+            "description": "Token to be carried by the user to access the interface",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "type": "string"
+            },
+            "explode": false,
+            "name": "token",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/__main____SimpleRespModel__ResponseModel"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    },
+    "/api/user/login": {
+      "post": {
+        "tags": [
+          "demo"
+        ],
+        "summary": "user login demo",
+        "description": "",
+        "operationId": "user login",
+        "parameters": [],
+        "requestBody": {
+          "description": "",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginModel"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "login response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/__main____link_example__<locals>__LoginRespModel__ResponseModel"
+                }
+              }
+            },
+            "links": {
+              "user logout/header/token": {
+                "operationId": "user logout",
+                "parameters": {
+                  "token": "$response.body#/data/token"
+                },
+                "description": "test links model"
+              }
+            }
+          }
+        },
+        "deprecated": false
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "demo",
+      "description": "test request"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "__main____SimpleRespModel__ResponseModel": {
+        "title": "ResponseModel",
+        "type": "object",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "description": "api code",
+            "default": 0,
+            "type": "integer"
+          },
+          "msg": {
+            "title": "Msg",
+            "description": "api status msg",
+            "default": "success",
+            "type": "string"
+          },
+          "data": {
+            "title": "Data",
+            "description": "success result",
+            "type": "object"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "SexEnum": {
+        "title": "SexEnum",
+        "description": "An enumeration.",
+        "enum": [
+          "man",
+          "woman"
+        ],
+        "type": "string"
+      },
+      "__main____UserSuccessRespModel__ResponseModel__DataModel": {
+        "title": "DataModel",
+        "type": "object",
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "description": "user id",
+            "exclusiveMinimum": 10,
+            "exclusiveMaximum": 1000,
+            "example": 666,
+            "type": "integer"
+          },
+          "user_name": {
+            "title": "User Name",
+            "description": "user name",
+            "maxLength": 10,
+            "minLength": 2,
+            "example": "mock_name",
+            "type": "string"
+          },
+          "multi_user_name": {
+            "title": "Multi User Name",
+            "description": "user name",
+            "maxLength": 10,
+            "minLength": 2,
+            "example": [
+              "mock_name"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 10
+            }
+          },
+          "sex": {
+            "description": "sex",
+            "example": "man",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SexEnum"
+              }
+            ]
+          },
+          "age": {
+            "title": "Age",
+            "description": "age",
+            "exclusiveMinimum": 1,
+            "exclusiveMaximum": 100,
+            "example": 99,
+            "type": "integer"
+          },
+          "email": {
+            "title": "Email",
+            "description": "user email",
+            "example": "example@so1n.me",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uid",
+          "user_name",
+          "multi_user_name",
+          "sex",
+          "age",
+          "email"
+        ]
+      },
+      "__main____UserSuccessRespModel__ResponseModel": {
+        "title": "ResponseModel",
+        "type": "object",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "description": "api code",
+            "default": 0,
+            "type": "integer"
+          },
+          "msg": {
+            "title": "Msg",
+            "description": "api status msg",
+            "default": "success",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/__main____UserSuccessRespModel__ResponseModel__DataModel"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "LoginModel": {
+        "title": "LoginModel",
+        "type": "object",
+        "properties": {
+          "user": {
+            "title": "User",
+            "description": "user",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "description": "user password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user",
+          "password"
+        ]
+      },
+      "FileModel": {
+        "title": "FileModel",
+        "type": "object",
+        "properties": {
+          "upload_file": {
+            "title": "Upload File",
+            "description": "uploaded file"
+          }
+        }
+      },
+      "BookModel": {
+        "title": "BookModel",
+        "type": "object",
+        "properties": {
+          "isbn": {
+            "title": "Isbn",
+            "description": "book isbn",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "description": "book name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "isbn",
+          "name"
+        ]
+      },
+      "__main____link_example__<locals>__LoginRespModel__ResponseModel__DataModel": {
+        "title": "DataModel",
+        "type": "object",
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "__main____link_example__<locals>__LoginRespModel__ResponseModel": {
+        "title": "ResponseModel",
+        "type": "object",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "description": "api code",
+            "default": 0,
+            "type": "integer"
+          },
+          "msg": {
+            "title": "Msg",
+            "description": "api status msg",
+            "default": "success",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/__main____link_example__<locals>__LoginRespModel__ResponseModel__DataModel"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "ExtendInfoModel": {
+        "title": "ExtendInfoModel",
+        "type": "object",
+        "properties": {
+          "multi_user_name": {
+            "title": "Multi User Name",
+            "description": "user name",
+            "maxLength": 10,
+            "minLength": 2,
+            "example": [
+              "mock_name"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 10
+            }
+          },
+          "sex": {
+            "description": "sex",
+            "example": "man",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SexEnum"
+              }
+            ]
+          },
+          "age": {
+            "title": "Age",
+            "description": "age",
+            "exclusiveMinimum": 1,
+            "exclusiveMaximum": 100,
+            "example": 99,
+            "type": "integer"
+          },
+          "email": {
+            "title": "Email",
+            "description": "user email",
+            "example": "example@so1n.me",
+            "type": "string"
+          }
+        },
+        "required": [
+          "multi_user_name",
+          "sex",
+          "age",
+          "email"
+        ]
+      },
+      "DemoUserDataModel": {
+        "title": "DemoUserDataModel",
+        "type": "object",
+        "properties": {
+          "uid": {
+            "title": "Uid",
+            "description": "user id",
+            "exclusiveMinimum": 10,
+            "exclusiveMaximum": 1000,
+            "example": 666,
+            "type": "integer"
+          },
+          "user_name": {
+            "title": "User Name",
+            "description": "user name",
+            "maxLength": 10,
+            "minLength": 2,
+            "example": "mock_name",
+            "type": "string"
+          },
+          "extend_info": {
+            "$ref": "#/components/schemas/ExtendInfoModel"
+          }
+        },
+        "required": [
+          "uid",
+          "user_name",
+          "extend_info"
+        ]
+      }
+    }
+  }
+}

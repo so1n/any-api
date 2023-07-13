@@ -5,8 +5,10 @@ refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.
 """
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Extra, Field, root_validator
+from pydantic import BaseModel, Field
 from typing_extensions import Literal
+
+from any_api.util import pydantic_adapter
 
 from ..util import HttpMethodLiteral
 from .basic import ExampleModel, ExternalDocumentationModel, RefModel, ServerModel, ServerVariableModel
@@ -20,6 +22,11 @@ from .security import (
     OpenIdConnectUrlSecurityModel,
     SecurityModelType,
 )
+
+if pydantic_adapter.is_v1:
+    from pydantic import Extra as ConfigDict
+else:
+    from pydantic import ConfigDict
 
 
 class TagModel(BaseModel):
@@ -107,13 +114,11 @@ class ParameterModel(HeaderModel):
     in_stub: Literal["query", "header", "path", "cookie"] = Field(
         description=(
             "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
-        )
+        ),
+        exclude=True,
     )
 
-    class Config:
-        fields = {"in_stub": {"exclude": True}}
-
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
     def set_in(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["in"] = values["in_stub"]
         return values
@@ -377,15 +382,18 @@ class OperationModel(BaseModel):
             "the default value would be a Server Object with a url value of /."
         ),
     )
+    if pydantic_adapter.is_v1:
 
-    class Config:
-        extra = Extra.allow
+        class Config:
+            extra = ConfigDict.allow
+
+    else:
+        model_config = ConfigDict(extra="allow")
 
 
 class OpenAPIModel(BaseModel):
     openapi: str = Field(
         "3.0.0",
-        const=True,
         description=(
             "This string MUST be the semantic version number of the OpenAPI Specification version that the OpenAPI"
             " document uses. The openapi field SHOULD be used by tooling specifications and clients to interpret"

@@ -1,23 +1,51 @@
 import copy
 import json
-from typing import Any, Callable, Dict, Generic, Optional, Tuple, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, Type, TypeVar
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from any_api.base_api.model.base_api_model import BaseAPIModel, BaseSecurityModel
 from any_api.openapi.model.openapi import TagModel
 from any_api.openapi.model.openapi.security import UserScopesOauth2SecurityModel
-from any_api.util import by_pydantic
+from any_api.util import by_pydantic, pydantic_adapter
 
 __all__ = ["BaseAPI"]
 
 _ModelT = TypeVar("_ModelT", bound=BaseAPIModel)
+_ApiModelT = TypeVar("_ApiModelT")
 
 
-class BaseAPI(Generic[_ModelT]):
+class BaseAPI(Generic[_ModelT, _ApiModelT]):
     _api_model: _ModelT
     _schema_key: str = "schemas"
     _add_tag_dict: dict = {}
+
+    def __init__(self) -> None:
+        self._temp_model_list: List[_ApiModelT] = []
+        self._has_not_load_model: bool = False
+
+        self._model_name_map: pydantic_adapter.ModelNameMapType = {}
+        self._definitions: dict = {}
+        self._model_use_count: Dict[Type[BaseModel], int] = {}
+
+    def add_api_model(self, *api_model_list: _ApiModelT) -> "Self":
+        for api_model in api_model_list:
+            self._temp_model_list.append(api_model)
+        self._has_not_load_model = True
+        return self
+
+    def generate(self) -> None:
+        # The definition data must be reloaded each time the data is generated
+        self._load_definitions_by_api_model()
+        for api_model in self._temp_model_list:
+            self._add_request_to_api_model(api_model)
+
+    def _load_definitions_by_api_model(self) -> None:
+        raise NotImplementedError
+
+    def _add_request_to_api_model(self, api_model: _ApiModelT) -> "Self":
+        raise NotImplementedError
 
     def _add_tag(self, *tag_list: TagModel) -> None:
         for tag in tag_list:
@@ -67,29 +95,35 @@ class BaseAPI(Generic[_ModelT]):
 
     def _xml_handler(self, schema_dict: dict) -> None:
         schema_dict["xml"] = {"name": schema_dict["title"]}
-        if "properties" in schema_dict:
-            for key, value in schema_dict["properties"].items():
-                if "type" not in value:
-                    continue
-                if value["type"] != "array":
-                    continue
-                value["xml"] = {"wrapped": True}
-                if "$ref" not in value["items"]:
-                    value["items"]["xml"] = {"name": value["title"]}
-        if "definitions" in schema_dict:
-            for _, _schema_dict in schema_dict["definitions"].items():
-                self._xml_handler(_schema_dict)
+        if "properties" not in schema_dict:
+            return
+        for key, value in schema_dict["properties"].items():
+            if "$ref" in value:
+                _, _, schema_key, key = value["$ref"].split("/")
+                self._xml_handler(self._api_model.components[self._schema_key][key])
+            if "type" not in value:
+                continue
+            if value["type"] != "array":
+                continue
+            value["xml"] = {"wrapped": True}
+            if "$ref" not in value["items"]:
+                value["items"]["xml"] = {"name": value["title"]}
+
+    def _get_not_in_components_model_schema(self, model: Type[BaseModel]) -> dict:
+        return pydantic_adapter.model_json_schema(model)
+
+    def _get_in_components_model_schema(self, model: Type[BaseModel]) -> Tuple[str, dict]:
+        global_model_name = self._model_name_map[model]
+        schema_dict: dict = self._definitions[self._model_name_map[model]]
+        return global_model_name, schema_dict
 
     def _schema_handle(
         self,
         model: Type[BaseModel],
         enable_move_to_component: bool = True,
         is_xml_model: bool = False,
-        model_name: Optional[str] = None,
     ) -> Tuple[str, dict]:
         global_model_name = by_pydantic.get_model_global_name(model)
-        if model_name:
-            global_model_name = f"{model_name}_{global_model_name}"
 
         if (
             global_model_name in self._api_model.components[self._schema_key]
@@ -98,9 +132,6 @@ class BaseAPI(Generic[_ModelT]):
         ):
             return global_model_name, self._api_model.components[self._schema_key][global_model_name]
         schema_dict: dict = copy.deepcopy(by_pydantic.any_api_model_schema(model))
-        # set custom title
-        if model_name is not None:
-            schema_dict["title"] = model_name
         if is_xml_model:
             self._xml_handler(schema_dict)
         self._replace_pydantic_definitions(schema_dict)
@@ -120,6 +151,9 @@ class BaseAPI(Generic[_ModelT]):
 
     @property
     def model(self) -> _ModelT:
+        if self._has_not_load_model:
+            self.generate()
+            self._has_not_load_model = False
         return self._api_model
 
     @property

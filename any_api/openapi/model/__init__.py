@@ -1,8 +1,9 @@
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, root_validator
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
+from any_api.util import pydantic_adapter
 
 from .links import LinksModel
 from .openapi import OperationModel, TagModel
@@ -82,7 +83,7 @@ class ApiModel(BaseModel):
         ),
     )
 
-    @validator("path")
+    @pydantic_adapter.field_validator("path")
     def validate_path(cls, path: str) -> str:
         if not path.startswith("/"):
             raise ValueError("path must start with `/`")

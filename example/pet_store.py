@@ -3,10 +3,10 @@ from typing import Dict, List, Optional, Type
 
 from pydantic import BaseModel, Field
 
-from any_api.openapi import OpenAPI
 from any_api.openapi.model import ApiModel
 from any_api.openapi.model import openapi as openapi_model
 from any_api.openapi.model import requests, responses
+from any_api.openapi.openapi_v1 import OpenAPI
 from any_api.util.by_pydantic import create_pydantic_model
 
 # copy from https://petstore3.swagger.io/api/v3/openapi.json
@@ -299,7 +299,8 @@ pet_store_openapi.add_api_model(
                                     explode=True,
                                 ),
                             )
-                        }
+                        },
+                        class_name="findByStatusQueryModel",
                     )
                 )
             ]
@@ -329,7 +330,8 @@ pet_store_openapi.add_api_model(
                                 List[str],
                                 Field(None, description="Tags to filter by", explode=True),
                             )
-                        }
+                        },
+                        class_name="findByTagsQueryModel",
                     )
                 )
             ]
@@ -359,7 +361,8 @@ pet_store_openapi.add_api_model(
                                 int,
                                 Field(description="Id of pet to return", format="int64"),
                             )
-                        }
+                        },
+                        class_name="getPetByIdPathModel",
                     )
                 )
             ]
@@ -389,7 +392,8 @@ pet_store_openapi.add_api_model(
                                 int,
                                 Field(description="Id of pet that needs to be updated", format="int64"),
                             )
-                        }
+                        },
+                        class_name="updatePetWithFormPathModel",
                     )
                 )
             ],
@@ -399,7 +403,8 @@ pet_store_openapi.add_api_model(
                         {
                             "name": (str, Field(description="Name of pet that needs to be updated")),
                             "status": (str, Field(description="Status of pet that needs to be updated")),
-                        }
+                        },
+                        class_name="updatePetWithFormQueryModel",
                     )
                 )
             ],
@@ -418,10 +423,20 @@ pet_store_openapi.add_api_model(
         request_dict={
             "path": [
                 requests.RequestModel(
-                    model=create_pydantic_model({"petId": (int, Field(description="Pet id to delete", format="int64"))})
+                    model=create_pydantic_model(
+                        {"petId": (int, Field(description="Pet id to delete", format="int64"))},
+                        class_name="deletePetPathModel",
+                    )
                 )
             ],
-            "header": [requests.RequestModel(model=create_pydantic_model({"api_key": (str, Field())}))],
+            "header": [
+                requests.RequestModel(
+                    model=create_pydantic_model(
+                        {"api_key": (str, Field())},
+                        class_name="deletePetHeaderModel",
+                    )
+                )
+            ],
         },
         response_list=[
             create_response_type("Invalid pet value", 400),
@@ -445,19 +460,26 @@ pet_store_openapi.add_api_model(
                                 int,
                                 Field(description="Id of pet to update", format="int64"),
                             )
-                        }
+                        },
+                        class_name="uploadIdPathModel",
                     )
                 )
             ],
             "query": [
                 requests.RequestModel(
-                    model=create_pydantic_model({"additionalMetadata": (str, Field(description="Additional Metadata"))})
+                    model=create_pydantic_model(
+                        {"additionalMetadata": (str, Field(description="Additional Metadata"))},
+                        class_name="uploadIdQueryModel",
+                    )
                 )
             ],
             "body": [
                 requests.RequestModel(
                     media_type_list=["application/octet-stream"],
-                    model=create_pydantic_model({"fake": (str, Field(format="binary"))}),
+                    model=create_pydantic_model(
+                        {"fake": (str, Field(format="binary"))},
+                        class_name="uploadIdBodyModel",
+                    ),
                     model_key="fake",
                 )
             ],
@@ -512,7 +534,8 @@ pet_store_openapi.add_api_model(
                                 str,
                                 Field(description="ID of order that needs to be fetched", format="int64"),
                             )
-                        }
+                        },
+                        class_name="getOrderByIdPathModel",
                     )
                 )
             ]
@@ -545,7 +568,8 @@ pet_store_openapi.add_api_model(
                                 str,
                                 Field(description="Id of the order that needs to be deleted", format="int64"),
                             )
-                        }
+                        },
+                        class_name="deleteOrderPathModel",
                     )
                 )
             ]
@@ -602,6 +626,7 @@ pet_store_openapi.add_api_model(
                             "username": (str, Field(None, description="The user name for login")),
                             "password": (str, Field(None, description="The password for login in clear text")),
                         },
+                        class_name="loginUserQueryModel",
                     )
                 )
             ]
@@ -639,7 +664,8 @@ pet_store_openapi.add_api_model(
                                 str,
                                 Field(description="The name that needs to be fetched. Use user1 for testing. "),
                             )
-                        }
+                        },
+                        class_name="getUserByNamePathModel",
                     )
                 )
             ]
@@ -663,7 +689,10 @@ pet_store_openapi.add_api_model(
         request_dict={
             "path": [
                 requests.RequestModel(
-                    model=create_pydantic_model({"username": (str, Field(description="name that need to be deleted"))})
+                    model=create_pydantic_model(
+                        {"username": (str, Field(description="name that need to be deleted"))},
+                        class_name="updateUserPathModel",
+                    )
                 )
             ],
             "body": [requests.RequestModel(media_type_list=["application/json", "application/xml"], model=User)],
@@ -683,7 +712,10 @@ pet_store_openapi.add_api_model(
         request_dict={
             "path": [
                 requests.RequestModel(
-                    model=create_pydantic_model({"username": (str, Field(description="name that need to be deleted"))})
+                    model=create_pydantic_model(
+                        {"username": (str, Field(description="name that need to be deleted"))},
+                        class_name="deleteUserPathModel",
+                    )
                 )
             ],
         },
