@@ -12,11 +12,35 @@ is_v1: bool = VERSION.startswith("1")
 ModelNameMapType = Dict[Type[BaseModel], str]
 DefinitionsReturnType = Tuple[ModelNameMapType, dict]
 
+__all__ = [
+    # var
+    "is_v1",
+    "ModelNameMapType",
+    "DefinitionsReturnType",
+    "VERSION",
+    "ConfigDict",
+    # pydantic compat func
+    "get_model_definitions",
+    "model_json_schema",
+    "model_validator",
+    "model_dump",
+    "field_validator",
+    "model_fields",
+    # util func
+    "get_extra_by_field_info",
+    "create_pydantic_model",
+    "json_type_default_value_dict",
+    "gen_example_dict_from_schema",
+    "remove_any_of",
+]
+
 
 if is_v1:
     from pydantic import root_validator as _model_validator
     from pydantic import validator as _field_validator
     from pydantic.schema import get_flat_models_from_model, get_model_name_map, model_process_schema
+
+    ConfigDict = dict
 
     def get_model_definitions(
         *model_sequence: Type[BaseModel], ref_prefix: str = "#/components/schemas/"
@@ -32,15 +56,23 @@ if is_v1:
                 model, model_name_map=model_name_map, ref_prefix=ref_prefix
             )
             definitions.update(m_definitions)
+            if model not in model_name_map:
+                raise ValueError(
+                    f"The current model may be a dynamically created model with a non-unique name."
+                    f" module:{model.__module__}, name:{model.__name__}"
+                )
             model_name = model_name_map[model]
 
             definitions[model_name] = m_schema
         return model_name_map, definitions
 
 else:
+    from pydantic import ConfigDict as _ConfigDict
     from pydantic import field_validator as _field_validator
     from pydantic import model_validator as _model_validator
     from pydantic.json_schema import GenerateJsonSchema, JsonSchemaMode
+
+    ConfigDict = _ConfigDict  # type: ignore[misc]
 
     def get_model_definitions(  # type: ignore[misc]
         *model_sequence: Type[BaseModel],
@@ -88,10 +120,7 @@ def model_validator(*, mode: str) -> Callable:
 
 
 def field_validator(*args: Any, **kwargs: Any) -> Callable:
-    if is_v1:
-        return partial(_field_validator, *args, **kwargs)
-    else:
-        return _field_validator(*args, **kwargs)
+    return _field_validator(*args, **kwargs)
 
 
 def model_fields(model: Type[BaseModel]) -> dict:
