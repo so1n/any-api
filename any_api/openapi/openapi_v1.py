@@ -170,8 +170,8 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                             "description"
                         ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
             else:
-                if api_request.model_key is not None:
-                    real_schema_dict = schema_dict["properties"][api_request.model_key]
+                if api_request.nested_model_key is not None:
+                    real_schema_dict = schema_dict["properties"][api_request.nested_model_key]
                 else:
                     real_schema_dict = {"$ref": f"#/components/schemas/{global_model_name}"}
                 if media_type in content_dict:

@@ -38,10 +38,10 @@ class RequestModel(BaseModel):
     #           'required': ['fake']
     #       }
     #
-    #   model_key: fake
+    #   nested_model_key: fake
     #   get really schema:
     #       {'title': 'Fake', 'format': 'binary', 'type': 'string'}
-    model_key: Optional[str] = Field(
+    nested_model_key: Optional[str] = Field(
         default=None,
         description=(
             "Usually the schema of the Request Body is the schema of the model,"

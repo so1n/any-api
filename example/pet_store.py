@@ -510,7 +510,7 @@ pet_store_openapi.add_api_model(
                         {"fake": (str, Field(format="binary"))},
                         class_name="uploadIdBodyModel",
                     ),
-                    model_key="fake",
+                    nested_model_key="fake",
                 )
             ],
         },

@@ -70,6 +70,13 @@ def model_json_schema(model: Type[BaseModel]) -> dict:
     return schema_dict
 
 
+def model_dump(model: Type[BaseModel], **kwargs: Any) -> dict:
+    if is_v1:
+        return model.dict(**kwargs)
+    else:
+        return model.model_dump(**kwargs)
+
+
 def model_validator(*, mode: str) -> Callable:
     if mode == "before":
         if is_v1:
@@ -85,6 +92,21 @@ def field_validator(*args: Any, **kwargs: Any) -> Callable:
         return partial(_field_validator, *args, **kwargs)
     else:
         return _field_validator(*args, **kwargs)
+
+
+def model_fields(model: Type[BaseModel]) -> dict:
+    if is_v1:
+        return model.__fields__
+    else:
+        return model.model_fields
+
+
+def get_extra_by_field_info(field: Any) -> dict:
+    if is_v1:
+        extra_dict: dict = field.field_info.extra
+    else:
+        extra_dict = field.json_schema_extra or {}
+    return extra_dict
 
 
 def create_pydantic_model(

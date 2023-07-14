@@ -67,10 +67,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
 
     def _header_handle(self, model: Type[BaseModel]) -> Dict[str, openapi_model.HeaderModel]:
         header_dict: Dict[str, openapi_model.HeaderModel] = {}
-        for key, value in model.schema()["properties"].items():
+        model_schema: dict = pydantic_adapter.model_json_schema(model)
+        for key, value in model_schema["properties"].items():
             header_dict[key] = openapi_model.HeaderModel(
                 description=value.get("description", ""),
-                required=key in model.schema().get("required", []),
+                required=key in model_schema.get("required", []),
                 deprecated=value.get("deprecated", False),
                 example=value.get("example", None),
                 schema={
@@ -182,8 +183,8 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                 if "application/xml" == media_type:
                     self._xml_handler(schema_dict)
 
-                if api_request.model_key is not None:
-                    real_schema_dict = schema_dict["properties"][api_request.model_key]
+                if api_request.nested_model_key is not None:
+                    real_schema_dict = schema_dict["properties"][api_request.nested_model_key]
                 else:
                     real_schema_dict = {"$ref": f"#/components/schemas/{global_model_name}"}
 

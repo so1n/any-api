@@ -104,11 +104,8 @@ class ApiModel(BaseModel):
                     else:
                         model_tuple = (request_model.model,)
                     for model in model_tuple:
-                        for field_name, field in model.__fields__.items():
-                            if pydantic_adapter.is_v1:
-                                extra_dict: dict = field.field_info.extra
-                            else:
-                                extra_dict = field.json_schema_extra or {}
+                        for field_name, field in pydantic_adapter.model_fields(model).items():
+                            extra_dict = pydantic_adapter.get_extra_by_field_info(field)
                             if "links" in extra_dict:
                                 link_model: LinksModel = extra_dict.pop("links")
                                 link_model.register(

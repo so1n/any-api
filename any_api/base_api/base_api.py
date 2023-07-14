@@ -171,7 +171,7 @@ class BaseAPI(Generic[_ModelT, _ApiModelT]):
 
     @property
     def dict(self) -> dict:
-        openapi_dict: dict = self.model.dict(exclude_none=True, by_alias=True)
+        openapi_dict: dict = pydantic_adapter.model_dump(self.model, exclude_none=True, by_alias=True)
         # if not openapi_dict["info"]["terms_of_service"]:
         #     del openapi_dict["info"]["terms_of_service"]
         #
