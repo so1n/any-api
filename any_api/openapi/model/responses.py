@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing_extensions import Literal
 
 from any_api.openapi.model import openapi as openapi_model
-from any_api.util.by_pydantic import gen_example_dict_from_schema
+from any_api.util.pydantic_adapter import gen_example_dict_from_schema
 
 __all__ = [
     "BaseResponseModel",

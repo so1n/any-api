@@ -8,7 +8,7 @@ from typing_extensions import Self
 from any_api.base_api.model.base_api_model import BaseAPIModel, BaseSecurityModel
 from any_api.openapi.model.openapi import TagModel
 from any_api.openapi.model.openapi.security import UserScopesOauth2SecurityModel
-from any_api.util import by_pydantic, pydantic_adapter
+from any_api.util import pydantic_adapter
 
 __all__ = ["BaseAPI"]
 
@@ -94,20 +94,31 @@ class BaseAPI(Generic[_ModelT, _ApiModelT]):
                         self._replace_pydantic_definitions(item, parent_schema)
 
     def _xml_handler(self, schema_dict: dict) -> None:
+        """
+        Add XML support for schemas in a traversal and recursive manner,
+        the specific display method will be determined according to the media type,
+        and will not affect the data display of application/json
+        """
+        if "xml" in schema_dict:
+            return
         schema_dict["xml"] = {"name": schema_dict["title"]}
         if "properties" not in schema_dict:
             return
         for key, value in schema_dict["properties"].items():
+            # nested schema handler
             if "$ref" in value:
                 _, _, schema_key, key = value["$ref"].split("/")
                 self._xml_handler(self._api_model.components[self._schema_key][key])
-            if "type" not in value:
-                continue
-            if value["type"] != "array":
+
+            # array handler
+            if value.get("type", "") != "array":
                 continue
             value["xml"] = {"wrapped": True}
             if "$ref" not in value["items"]:
                 value["items"]["xml"] = {"name": value["title"]}
+            else:
+                _, _, schema_key, key = value["items"]["$ref"].split("/")
+                self._xml_handler(self._api_model.components[self._schema_key][key])
 
     def _get_not_in_components_model_schema(self, model: Type[BaseModel]) -> dict:
         return pydantic_adapter.model_json_schema(model)
@@ -123,6 +134,8 @@ class BaseAPI(Generic[_ModelT, _ApiModelT]):
         enable_move_to_component: bool = True,
         is_xml_model: bool = False,
     ) -> Tuple[str, dict]:
+        from any_api.util import by_pydantic
+
         global_model_name = by_pydantic.get_model_global_name(model)
 
         if (

@@ -92,7 +92,7 @@ class ApiModel(BaseModel):
     def add_to_operation_model(self, openapi_model: OperationModel) -> None:
         pass
 
-    @root_validator
+    @pydantic_adapter.model_validator(mode="before")
     def after_init(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Data association after initializing data"""
         if "request_dict" in values:
@@ -105,8 +105,12 @@ class ApiModel(BaseModel):
                         model_tuple = (request_model.model,)
                     for model in model_tuple:
                         for field_name, field in model.__fields__.items():
-                            if "links" in field.field_info.extra:
-                                link_model: LinksModel = field.field_info.extra.pop("links")
+                            if pydantic_adapter.is_v1:
+                                extra_dict: dict = field.field_info.extra
+                            else:
+                                extra_dict = field.json_schema_extra or {}
+                            if "links" in extra_dict:
+                                link_model: LinksModel = extra_dict.pop("links")
                                 link_model.register(
                                     param_name=field.field_info.alias or field_name,
                                     http_param_type_name=http_param_type_name,

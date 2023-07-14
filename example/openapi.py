@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 from any_api.openapi.model import ApiModel, links
 from any_api.openapi.model import openapi as openapi_model
-from any_api.openapi.openapi_v1 import OpenAPI, requests, responses
+from any_api.openapi.openapi import OpenAPI, requests, responses
 
 
 class SexEnum(str, Enum):
@@ -336,6 +336,6 @@ if __name__ == "__main__":
     post_and_has_query_request_openapi_example(my_openapi)
     link_example(my_openapi)
     print(my_openapi.content())
-    # from any_api.openapi.to.markdown import Markdown
-    #
-    # print(Markdown(my_openapi).content)
+    from any_api.openapi.to.markdown import Markdown
+
+    print(Markdown(my_openapi).content)

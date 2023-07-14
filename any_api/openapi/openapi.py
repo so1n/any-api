@@ -17,13 +17,18 @@ __all__ = ["OpenAPI"]
 class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
     def __init__(
         self,
+        openapi_version: str = "3.0.0",
         openapi_info_model: Optional[openapi_model.InfoModel] = None,
         server_model_list: Optional[List[openapi_model.ServerModel]] = None,
         tag_model_list: Optional[List[openapi_model.TagModel]] = None,
         external_docs: Optional[openapi_model.ExternalDocumentationModel] = None,
         security_dict: Optional[Dict[str, openapi_model.SecurityModelType]] = None,
         # default_response: Optional[...] = None,  # TODO
+        # If you want to know why, check it out `pydantic_adapter.remove_any_of` func __doc__
+        enable_remove_any_of: bool = not pydantic_adapter.is_v1,
     ):
+        self._enable_remove_any_of = enable_remove_any_of
+
         self._header_keyword_dict: Dict[str, str] = {
             "Content-Type": "requestBody.content.<media-type>",
             "Accept": "responses.<code>.content.<media-type>",
@@ -31,7 +36,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
         }
         self._add_tag_dict: dict = {}
 
-        self._api_model: openapi_model.OpenAPIModel = openapi_model.OpenAPIModel()
+        self._api_model: openapi_model.OpenAPIModel = openapi_model.OpenAPIModel(openapi=openapi_version)
         if openapi_info_model:
             self._api_model.info = openapi_info_model
         if server_model_list:
@@ -78,13 +83,19 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
 
     def _parameter_handle(
         self,
-        param_type: Literal["query", "header", "path", "cookie"],
+        *,
+        api_model: ApiModel,
         operation_model: openapi_model.OperationModel,
         api_request: requests.RequestModel,
+        param_type: Literal["query", "header", "path", "cookie"],
     ) -> None:
         if isinstance(api_request.model, tuple):
             raise ValueError("parameter not support array model")
-        _, schema_dict = self._schema_handle(api_request.model, enable_move_to_component=False)
+        global_model_name, schema_dict = self._get_in_components_model_schema(api_request.model)
+        self._model_use_count[api_request.model] -= 1
+        if self._model_use_count[api_request.model] == 0:
+            del self._definitions[global_model_name]
+
         for key, property_dict in schema_dict["properties"].items():
             description: str = property_dict.get("description", "") or ""
             required: bool = key in schema_dict.get("required", [])
@@ -118,9 +129,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
 
     def _body_handle(
         self,
-        param_type: str,
+        *,
+        api_model: ApiModel,
         operation_model: openapi_model.OperationModel,
         api_request: requests.RequestModel,
+        param_type: str,
     ) -> None:
         """
         gen request body schema and update request body schemas'definitions to components schemas
@@ -138,14 +151,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
             request_body_is_array = True
         else:
             request_body_model = api_request.model
-        global_model_name, schema_dict = self._schema_handle(
-            request_body_model,
-            enable_move_to_component=param_type != "multiform",
-            is_xml_model="application/xml" in api_request.media_type_list,
-        )
+
         for media_type in api_request.media_type_list:
             content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
             if param_type == "multiform":
+                # multiform not save to components
+                schema_dict = self._get_not_in_components_model_schema(request_body_model)
                 if media_type in content_dict:
                     for key, value in self._get_real_schema_dict(content_dict[media_type].schema_).items():
                         if isinstance(value, list):
@@ -167,10 +178,15 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                             "description"
                         ] += "     \n >Swagger UI could not support, when media_type is multipart/form-data"
             else:
+                global_model_name, schema_dict = self._get_in_components_model_schema(request_body_model)
+                if "application/xml" == media_type:
+                    self._xml_handler(schema_dict)
+
                 if api_request.model_key is not None:
                     real_schema_dict = schema_dict["properties"][api_request.model_key]
                 else:
                     real_schema_dict = {"$ref": f"#/components/schemas/{global_model_name}"}
+
                 if media_type in content_dict:
                     if request_body_is_array:
                         raise ValueError("request body is array, not support multi diff request body")
@@ -189,8 +205,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
 
     def _file_upload_handle(
         self,
+        *,
+        api_model: ApiModel,
         operation_model: openapi_model.OperationModel,
         api_request: requests.RequestModel,
+        param_type: str,
     ) -> None:
         """https://swagger.io/docs/specification/describing-request-body/file-upload/"""
         if isinstance(api_request.model, tuple):
@@ -229,13 +248,28 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                 continue
             for api_request in request_list:
                 if param_type in ("cookie", "header", "path", "query"):
-                    self._parameter_handle(param_type, operation_model, api_request)
+                    self._parameter_handle(
+                        api_model=api_model,
+                        operation_model=operation_model,
+                        api_request=api_request,
+                        param_type=param_type,
+                    )
                 elif param_type in ("body", "form", "json", "multiform"):
                     if not api_request.media_type_list:
                         raise ValueError(f"Can not found {param_type} `model's media_type`")
-                    self._body_handle(param_type, operation_model, api_request)
+                    self._body_handle(
+                        api_model=api_model,
+                        operation_model=operation_model,
+                        api_request=api_request,
+                        param_type=param_type,
+                    )
                 elif param_type in ("file",):
-                    self._file_upload_handle(operation_model, api_request)
+                    self._file_upload_handle(
+                        api_model=api_model,
+                        operation_model=operation_model,
+                        api_request=api_request,
+                        param_type=param_type,
+                    )
 
     def _response_handle(
         self,
@@ -254,15 +288,15 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
             resp_model: responses.BaseResponseModel = resp_model_class()
 
             global_model_name: str = ""
+            schema_dict: dict = {}
             if (
                 getattr(resp_model, "response_data", None)
                 and isinstance(resp_model.response_data, type)
                 and issubclass(resp_model.response_data, BaseModel)
             ):
-                global_model_name, schema_dict = self._schema_handle(
-                    resp_model.response_data,
-                    is_xml_model="application/xml" == resp_model.media_type,
-                )
+                global_model_name, schema_dict = self._get_in_components_model_schema(resp_model.response_data)
+                if "application/xml" == resp_model.media_type:
+                    self._xml_handler(schema_dict)
 
             if isinstance(resp_model.status_code, str):
                 # support status_code is default
@@ -310,8 +344,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                     response.content[resp_model.media_type] = openapi_model.MediaTypeModel(
                         schema=resp_model.openapi_schema
                     )
-                elif global_model_name:
-                    openapi_schema_dict: dict = {"$ref": f"#/components/schemas/{global_model_name}"}
+                elif global_model_name or schema_dict:
+                    if global_model_name:
+                        openapi_schema_dict: dict = {"$ref": f"#/components/schemas/{global_model_name}"}
+                    else:
+                        openapi_schema_dict = schema_dict
                     if _is_array_response:
                         openapi_schema_dict = {"type": "array", "items": openapi_schema_dict}
                     if key in response_schema_dict:
@@ -335,9 +372,18 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
 
     def _load_definitions_by_api_model(self) -> None:
         in_components_model_list: List[Type[BaseModel]] = []
+        model_use_count: Dict[Type[BaseModel], int] = {}
+
+        def _add_model(model: Type[BaseModel]) -> None:
+            in_components_model_list.append(model)
+            if model not in model_use_count:
+                model_use_count[model] = 1
+            else:
+                model_use_count[model] += 1
+
         for api_model in self._temp_model_list:
             for param_type in HttpParamTypeLiteral.__args__:  # type: ignore
-                if param_type not in ("body", "form", "json", "multiform"):
+                if param_type in ("multiform",):
                     continue
                 request_list = api_model.request_dict.get(param_type, [])
                 if not request_list:
@@ -345,9 +391,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                 for api_request in request_list:
                     if isinstance(api_request.model, tuple):
                         for _model in api_request.model:
-                            in_components_model_list.append(_model)
+                            _add_model(_model)
                     else:
-                        in_components_model_list.append(api_request.model)
+                        _add_model(api_request.model)
             for resp_model_class in api_model.response_list:
                 if not isinstance(resp_model_class, tuple):
                     resp_model_class = (resp_model_class,)
@@ -358,8 +404,13 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                         and inspect.isclass(resp_model.response_data)
                         and issubclass(resp_model.response_data, BaseModel)
                     ):
-                        in_components_model_list.append(resp_model.response_data)
+                        _add_model(resp_model.response_data)
         self._model_name_map, self._definitions = pydantic_adapter.get_model_definitions(*in_components_model_list)
+        if self._enable_remove_any_of:
+            for k, v in self._definitions.items():
+                pydantic_adapter.remove_any_of(v)
+        self._api_model.components[self._schema_key] = self._definitions
+        self._model_use_count = model_use_count
 
     def _add_request_to_api_model(self, api_model: ApiModel) -> "OpenAPI":
         path_dict: Dict[HttpMethodLiteral, openapi_model.OperationModel] = {}

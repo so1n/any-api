@@ -53,3 +53,16 @@ def check_dict(
                 raw_source_container=raw_source_container,
                 ignore_key_list=ignore_key_list,
             )
+    else:
+        if len(nested_key_list) >= 3 and nested_key_list[-1] == "description" and nested_key_list[-3] == "responses":
+            # AnyAPI output: Successful operation|Successful operation, Pet store desc:  Successful operation
+            # AnyAPI output: Successful operation|Successful operation, Pet store desc:  successful operation
+            assert source_container.lower() in target_container.lower(), (
+                "->".join(nested_key_list)
+                + f" value error \n>>>>>>\nsource:\n\n{source_container}\n>>>>>>\ntarget:\n\n{target_container}\n>>>>>>"
+            )
+        else:
+            assert source_container == target_container, (
+                "->".join(nested_key_list)
+                + f" value error \n>>>>>>\nsource:\n\n{source_container}\n>>>>>>\ntarget:\n\n{target_container}\n>>>>>>"
+            )
