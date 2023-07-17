@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, List, Optional, Type
 from pydantic import BaseModel
 
 from any_api.openapi.model import openapi as openapi_model
+from any_api.util import pydantic_adapter
 
 if TYPE_CHECKING:
     from .response import BaseResponseModel
@@ -55,12 +56,17 @@ class LinksModel(object):
 
             base_model: Type[BaseModel] = self.response_model.response_data  # type: ignore
             for key in key_list:
-                if key not in base_model.__fields__:
+                model_fields = pydantic_adapter.model_fields(base_model)
+                if key not in model_fields:
                     raise ValueError(
                         f"check expr:{self.openapi_runtime_expr} error "  # type: ignore
                         f"from {self.response_model.response_data}"  # type: ignore
                     )
-                temp_type: Type = base_model.__fields__[key].type_
+                if pydantic_adapter.is_v1:
+                    temp_type: Type = model_fields[key].type_
+                else:
+                    temp_type = model_fields[key].annotation
+
                 if issubclass(temp_type, BaseModel):
                     base_model = temp_type
         else:

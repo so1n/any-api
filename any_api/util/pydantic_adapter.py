@@ -6,6 +6,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from pydantic import BaseConfig, BaseModel, create_model
+from pydantic.fields import FieldInfo
 from pydantic.version import VERSION
 
 is_v1: bool = VERSION.startswith("1")
@@ -38,6 +39,7 @@ __all__ = [
 if is_v1:
     from pydantic import root_validator as _model_validator
     from pydantic import validator as _field_validator
+    from pydantic.fields import ModelField
     from pydantic.schema import get_flat_models_from_model, get_model_name_map, model_process_schema
 
     ConfigDict = dict
@@ -66,6 +68,12 @@ if is_v1:
             definitions[model_name] = m_schema
         return model_name_map, definitions
 
+    def model_fields(model: Type[BaseModel]) -> Dict[str, ModelField]:
+        return model.__fields__
+
+    def get_field_info(field: ModelField) -> FieldInfo:
+        return field.field_info
+
 else:
     from pydantic import ConfigDict as _ConfigDict
     from pydantic import field_validator as _field_validator
@@ -89,16 +97,24 @@ else:
             any_api_model_name_map[k[0]] = v["$ref"].replace(replace_str, "")
         return any_api_model_name_map, definitions
 
+    def model_fields(model: Type[FieldInfo]) -> Dict[str, FieldInfo]:
+        return model.model_fields
 
-def model_json_schema(model: Type[BaseModel]) -> dict:
+    def get_field_info(field: FieldInfo) -> FieldInfo:
+        return field
+
+
+def model_json_schema(model: Type[BaseModel], definition_key: str = "$defs") -> dict:
     if is_v1:
         schema_dict = model.schema()
-        if "definitions" in schema_dict:
-            schema_dict["$defs"] = schema_dict["definitions"]
+        if "definitions" in schema_dict and definition_key != "definitions":
+            schema_dict[definition_key] = schema_dict["definitions"]
     else:
         from pydantic.json_schema import model_json_schema
 
         schema_dict = model_json_schema(model)
+        if "$defs" in schema_dict and definition_key != "$defs":
+            schema_dict[definition_key] = schema_dict["$defs"]
     return schema_dict
 
 
@@ -121,13 +137,6 @@ def model_validator(*, mode: str) -> Callable:
 
 def field_validator(*args: Any, **kwargs: Any) -> Callable:
     return _field_validator(*args, **kwargs)
-
-
-def model_fields(model: Type[BaseModel]) -> dict:
-    if is_v1:
-        return model.__fields__
-    else:
-        return model.model_fields
 
 
 def get_extra_by_field_info(field: Any) -> dict:

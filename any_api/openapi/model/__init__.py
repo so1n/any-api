@@ -107,9 +107,11 @@ class ApiModel(BaseModel):
                         for field_name, field in pydantic_adapter.model_fields(model).items():
                             extra_dict = pydantic_adapter.get_extra_by_field_info(field)
                             if "links" in extra_dict:
+                                # TODO pydantic v2
+                                # TODO Although the Key is removed, the generated schema still contains this value
                                 link_model: LinksModel = extra_dict.pop("links")
                                 link_model.register(
-                                    param_name=field.field_info.alias or field_name,
+                                    param_name=pydantic_adapter.get_field_info(field).alias or field_name,
                                     http_param_type_name=http_param_type_name,
                                     operation_id=values["operation_id"],
                                 )
