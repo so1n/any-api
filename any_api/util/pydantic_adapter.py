@@ -118,7 +118,7 @@ def model_json_schema(model: Type[BaseModel], definition_key: str = "$defs") -> 
     return schema_dict
 
 
-def model_dump(model: Type[BaseModel], **kwargs: Any) -> dict:
+def model_dump(model: BaseModel, **kwargs: Any) -> dict:
     if is_v1:
         return model.dict(**kwargs)
     else:

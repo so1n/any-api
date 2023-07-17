@@ -218,7 +218,7 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
         if operation_model.request_body is None:
             operation_model.request_body = openapi_model.RequestBodyModel()
         content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
-        schema_dict: dict = api_request.model.schema()
+        schema_dict: dict = pydantic_adapter.model_json_schema(api_request.model)
         for media_type in api_request.media_type_list:
             required_column_list: List[str] = schema_dict.get("required", [])
             properties_dict: dict = {
