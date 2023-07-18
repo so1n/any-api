@@ -5,8 +5,8 @@ from typing_extensions import TypedDict
 
 from any_api.openapi.model import openapi as openapi_model
 from any_api.openapi.openapi import OpenAPI
-from any_api.util.by_pydantic import gen_example_dict_from_schema
 from any_api.util.i18n import I18n, I18nContext, i18n_local, join_i18n
+from any_api.util.pydantic_adapter import gen_example_dict_from_schema
 
 
 class ParamTypedDict(TypedDict):

@@ -1,7 +1,5 @@
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type, Union
 
-from pydantic import create_model
 from pydantic.schema import (
     default_ref_template,
     get_flat_models_from_model,
@@ -13,12 +11,12 @@ from pydantic.schema import (
 )
 
 if TYPE_CHECKING:
-    from pydantic import BaseConfig, BaseModel
+    from pydantic import BaseModel
     from pydantic.dataclasses import Dataclass
     from pydantic.schema import TypeModelOrEnum, TypeModelSet
 
 
-__all__ = ["any_api_model_schema", "create_pydantic_model", "get_model_global_name", "gen_example_dict_from_schema"]
+__all__ = ["any_api_model_schema", "get_model_global_name"]
 
 global_name_model_map = {}
 global_conflicting_names: Set[str] = set()
@@ -98,107 +96,3 @@ def any_api_model_schema(
     if m_definitions:
         m_schema.update({"definitions": m_definitions})
     return m_schema
-
-
-def create_pydantic_model(
-    annotation_dict: Optional[Dict[str, Tuple[Type, Any]]] = None,
-    class_name: str = "DynamicModel",
-    pydantic_config: Optional[Type["BaseConfig"]] = None,
-    pydantic_base: Optional[Type["BaseModel"]] = None,
-    pydantic_module: str = "pydantic.main",
-    pydantic_validators: Optional[Dict[str, classmethod]] = None,
-) -> Type["BaseModel"]:
-    """pydantic self.pait_response_model helper
-    if use create_model('DynamicModel', **annotation_dict), mypy will tip error
-    """
-    return create_model(
-        class_name,
-        __config__=pydantic_config,
-        __base__=pydantic_base,
-        __module__=pydantic_module,
-        __validators__=pydantic_validators,
-        **(annotation_dict or {}),
-    )
-
-
-json_type_default_value_dict: Dict[str, Any] = {
-    "null": None,
-    "bool": True,
-    "boolean": True,
-    "string": "",
-    "number": 0.0,
-    "float": 0.0,
-    "integer": 0,
-    "object": {},
-    "array": [],
-}
-
-
-def _example_value_handle(example_value: Any) -> Any:
-    if getattr(example_value, "__call__", None):
-        example_value = example_value()
-    elif isinstance(example_value, Enum):
-        example_value = example_value.value
-    return example_value
-
-
-def gen_example_dict_from_schema(
-    schema_dict: Dict[str, Any],
-    definition_dict: Optional[dict] = None,
-    example_value_handle: Callable[[Any], Any] = _example_value_handle,
-) -> Dict[str, Any]:
-    gen_dict: Dict[str, Any] = {}
-
-    def _ref_handle(_key: str, _value_dict: dict) -> None:
-        if "items" in _value_dict:
-            model_key: str = _value_dict["items"]["$ref"].split("/")[-1]
-        else:
-            model_key = _value_dict["$ref"].split("/")[-1]
-        model_dict: dict = _definition_dict.get(model_key, {})
-        if "enum" in model_dict:
-            gen_dict[_key] = model_dict["enum"][0]
-        elif model_dict.get("type", None) == "object":
-            gen_dict[_key] = gen_example_dict_from_schema(
-                _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
-            )
-        else:
-            gen_dict[_key] = [
-                gen_example_dict_from_schema(
-                    _definition_dict.get(model_key, {}), _definition_dict, example_value_handle
-                )
-            ]
-
-    if "properties" not in schema_dict:
-        return gen_dict
-    property_dict: Dict[str, Any] = schema_dict["properties"]
-    if not definition_dict:
-        _definition_dict: dict = schema_dict.get("definitions", {})
-    else:
-        _definition_dict = definition_dict
-    for key, value in property_dict.items():
-        if "items" in value and value["type"] == "array":
-            if "$ref" in value["items"]:
-                _ref_handle(key, value)
-            elif "example" in value:
-                gen_dict[key] = example_value_handle(value["example"])
-            elif "default" in value:
-                gen_dict[key] = value["default"]
-            else:
-                gen_dict[key] = []
-        elif "$ref" in value:
-            _ref_handle(key, value)
-        else:
-            if "example" in value:
-                gen_dict[key] = example_value_handle(value["example"])
-            elif "default" in value:
-                gen_dict[key] = value["default"]
-            else:
-                if "type" in value:
-                    if value["type"] not in json_type_default_value_dict:
-                        raise KeyError(f"Can not found type: {key} in json type")
-                    gen_dict[key] = json_type_default_value_dict[value["type"]]
-                else:
-                    gen_dict[key] = "object"
-            if isinstance(gen_dict[key], Enum):
-                gen_dict[key] = gen_dict[key].value
-    return gen_dict

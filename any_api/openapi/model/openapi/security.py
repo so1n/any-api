@@ -1,9 +1,10 @@
 from typing import Any, Dict, List, Optional, Union
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
 from any_api.openapi.model.util import SecurityHttpParamTypeLiteral
+from any_api.util import pydantic_adapter
 
 
 class OAuthFlowModel(BaseModel):
@@ -48,7 +49,8 @@ class OAuthFlowsModel(BaseModel):
         description="Configuration for the OAuth Authorization Code flow. Previously called accessCode in OpenAPI 2.0.",
     )
 
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
+    @classmethod
     def check_include_model(cls, values: Dict[str, OAuthFlowModel]) -> Dict[str, OAuthFlowModel]:
         for key, oauth_flow_model in values.items():
             if key in ("implicit", "authorizationCode"):
@@ -66,7 +68,7 @@ class OpenIdConnectUrlSecurityModel(BaseSecurityModel):
         description="OpenId Connect URL to discover OAuth2 configuration values. This MUST be in the form of a URL.",
     )
 
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["type"] = "openIdConnect"
         return values
@@ -77,7 +79,7 @@ class Oauth2SecurityModel(BaseSecurityModel):
         description="An object containing configuration information for the flow types supported."
     )
 
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["type"] = "oauth2"
         return values
@@ -102,7 +104,8 @@ class UserScopesOauth2SecurityModel(Oauth2SecurityModel):
     use_scopes: List[str] = Field(description="Scope for the real use Oauth2SecurityModel", default_factory=list)
     model: Oauth2SecurityModel = Field(description="Parent Oauth2SecurityModel")
 
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
+    @classmethod
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         model: Oauth2SecurityModel = values["model"]
         values["flows"] = model.flows
@@ -135,7 +138,8 @@ class HttpSecurityModel(BaseSecurityModel):
         ),
     )
 
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
+    @classmethod
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["type"] = "http"
         return values
@@ -151,13 +155,11 @@ class ApiKeySecurityModel(BaseSecurityModel):
     in_stub: SecurityHttpParamTypeLiteral = Field(
         description=(
             "This value is a stand-in for `in`, and the value is automatically synchronized to `in` when initialized"
-        )
+        ),
+        exclude=True,
     )
 
-    class Config:
-        fields = {"in_stub": {"exclude": True}}
-
-    @root_validator(pre=True)
+    @pydantic_adapter.model_validator(mode="before")
     def set_type(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         values["type"] = "apiKey"
         values["in"] = values["in_stub"]

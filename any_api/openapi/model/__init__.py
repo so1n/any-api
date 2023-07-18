@@ -1,8 +1,9 @@
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from pydantic import BaseModel, Field, root_validator, validator
+from pydantic import BaseModel, Field, root_validator
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
+from any_api.util import pydantic_adapter
 
 from .links import LinksModel
 from .openapi import OperationModel, TagModel
@@ -82,7 +83,7 @@ class ApiModel(BaseModel):
         ),
     )
 
-    @validator("path")
+    @pydantic_adapter.field_validator("path")
     def validate_path(cls, path: str) -> str:
         if not path.startswith("/"):
             raise ValueError("path must start with `/`")
@@ -91,7 +92,7 @@ class ApiModel(BaseModel):
     def add_to_operation_model(self, openapi_model: OperationModel) -> None:
         pass
 
-    @root_validator
+    @pydantic_adapter.model_validator(mode="before")
     def after_init(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """Data association after initializing data"""
         if "request_dict" in values:
@@ -103,11 +104,14 @@ class ApiModel(BaseModel):
                     else:
                         model_tuple = (request_model.model,)
                     for model in model_tuple:
-                        for field_name, field in model.__fields__.items():
-                            if "links" in field.field_info.extra:
-                                link_model: LinksModel = field.field_info.extra.pop("links")
+                        for field_name, field in pydantic_adapter.model_fields(model).items():
+                            extra_dict = pydantic_adapter.get_extra_by_field_info(field)
+                            if "links" in extra_dict:
+                                # TODO pydantic v2
+                                # TODO Although the Key is removed, the generated schema still contains this value
+                                link_model: LinksModel = extra_dict.pop("links")
                                 link_model.register(
-                                    param_name=field.field_info.alias or field_name,
+                                    param_name=pydantic_adapter.get_field_info(field).alias or field_name,
                                     http_param_type_name=http_param_type_name,
                                     operation_id=values["operation_id"],
                                 )
