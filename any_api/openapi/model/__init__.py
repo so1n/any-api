@@ -1,6 +1,7 @@
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from warnings import warn
 
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field
 
 from any_api.base_api.model.base_api_model import BaseSecurityModel
 from any_api.util import pydantic_adapter
@@ -105,10 +106,12 @@ class ApiModel(BaseModel):
                         model_tuple = (request_model.model,)
                     for model in model_tuple:
                         for field_name, field in pydantic_adapter.model_fields(model).items():
-                            extra_dict = pydantic_adapter.get_extra_by_field_info(field)
+                            extra_dict = pydantic_adapter.get_extra_dict_by_field_info(field)
                             if "links" in extra_dict:
-                                # TODO pydantic v2
-                                # TODO Although the Key is removed, the generated schema still contains this value
+                                if pydantic_adapter.VERSION.startswith("2.0"):
+                                    warn("pydantic 2.0.x version not support change extra ")
+                                if callable(pydantic_adapter.get_extra_by_field_info(field)):
+                                    warn("Not support json_extra_schema type is callable")
                                 link_model: LinksModel = extra_dict.pop("links")
                                 link_model.register(
                                     param_name=pydantic_adapter.get_field_info(field).alias or field_name,

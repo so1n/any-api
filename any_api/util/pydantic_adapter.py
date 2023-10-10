@@ -3,7 +3,7 @@ Compatible with V1 and V 2 versions of pydantic
 """
 from enum import Enum
 from functools import partial
-from typing import Any, Callable, Dict, Optional, Tuple, Type
+from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
 
 from pydantic import BaseConfig, BaseModel, create_model
 from pydantic.fields import FieldInfo
@@ -29,6 +29,7 @@ __all__ = [
     "model_fields",
     # util func
     "get_extra_by_field_info",
+    "get_extra_dict_by_field_info",
     "create_pydantic_model",
     "json_type_default_value_dict",
     "gen_example_dict_from_schema",
@@ -139,7 +140,7 @@ def field_validator(*args: Any, **kwargs: Any) -> Callable:
     return _field_validator(*args, **kwargs)
 
 
-def get_extra_by_field_info(field: Any) -> dict:
+def get_extra_by_field_info(field: Any) -> Union[Callable, dict]:
     if is_v1:
         extra_dict: dict = field.field_info.extra
     else:
@@ -326,3 +327,14 @@ def remove_any_of(schema_dict: dict) -> None:
             for item in v:
                 if isinstance(item, dict):
                     remove_any_of(item)
+
+
+def get_extra_dict_by_field_info(field: Any, json_schema_extra_dict: Optional[dict] = None) -> dict:
+    json_schema_extra = get_extra_by_field_info(field)
+    if callable(json_schema_extra):
+        if not json_schema_extra_dict:
+            json_schema_extra_dict = {}
+        json_schema_extra(json_schema_extra_dict)
+    else:
+        json_schema_extra_dict = json_schema_extra
+    return json_schema_extra_dict
