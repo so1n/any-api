@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 
 
 class ServerVariableModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#server-variable-object"""
+
     enum: List[str] = Field(
         default_factory=list,
         description="An enumeration of string values to be used if the substitution options are from a limited set.",
@@ -20,6 +22,8 @@ class ServerVariableModel(BaseModel):
 
 
 class ServerModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#server-object"""
+
     url: str = Field(
         description=(
             "A URL to the target host. This URL supports Server Variables and MAY be relative, "
@@ -39,6 +43,8 @@ class ServerModel(BaseModel):
 
 
 class ExternalDocumentationModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#external-documentation-object"""
+
     description: str = Field(
         default="",
         description=(
@@ -50,10 +56,14 @@ class ExternalDocumentationModel(BaseModel):
 
 
 class RefModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#reference-object"""
+
     ref: str = Field(alias="$ref")
 
 
 class ExampleModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#example-object"""
+
     summary: str = Field(default="", description="A short summary of what the operation does.")
     description: str = Field(
         default="",

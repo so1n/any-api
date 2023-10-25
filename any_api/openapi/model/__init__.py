@@ -10,11 +10,13 @@ from .links import LinksModel
 from .openapi import OperationModel, TagModel
 from .requests import RequestModel
 from .responses import (
+    BaseOpenAPIResponseModel,
     BaseResponseModel,
     FileResponseModel,
     HtmlResponseModel,
     JsonResponseModel,
     TextResponseModel,
+    UnionResponseModel,
     XmlResponseModel,
 )
 from .util import HttpMethodLiteral, HttpParamTypeLiteral
@@ -70,7 +72,7 @@ class ApiModel(BaseModel):
     request_dict: Dict[HttpParamTypeLiteral, List[RequestModel]] = Field(
         default_factory=dict, description="request parameter and request body dict"
     )
-    response_list: List[Union[Type[BaseResponseModel], Tuple[Type[BaseResponseModel]]]] = Field(
+    response_list: List[Type[BaseOpenAPIResponseModel]] = Field(
         default_factory=list, description="List of response object classes"
     )
     security: Optional[Dict[str, BaseSecurityModel]] = Field(
@@ -101,7 +103,7 @@ class ApiModel(BaseModel):
             for http_param_type_name, request_model_list in request_dict.items():
                 for request_model in request_model_list:
                     if isinstance(request_model.model, tuple):
-                        model_tuple: Tuple[Type[BaseModel]] = request_model.model
+                        model_tuple: Tuple[Type[BaseModel], ...] = request_model.model
                     else:
                         model_tuple = (request_model.model,)
                     for model in model_tuple:

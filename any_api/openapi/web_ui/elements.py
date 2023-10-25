@@ -1,17 +1,10 @@
-from typing import Optional
-
-
 def get_elements_html(
     open_api_json_url: str,
-    js_src_url: Optional[str] = None,
-    css_src_url: Optional[str] = None,
+    js_src_url: str = "https://unpkg.com/@stoplight/elements/web-components.min.js",
+    css_src_url: str = "https://unpkg.com/@stoplight/elements/styles.min.css",
     title: str = "ReDoc",
 ) -> str:
     """copy from https://github.com/stoplightio/elements"""
-    if not js_src_url:
-        js_src_url = "https://unpkg.com/@stoplight/elements/web-components.min.js"
-    if not css_src_url:
-        css_src_url = "https://unpkg.com/@stoplight/elements/styles.min.css"
     return f"""
     <!doctype html>
     <html lang="en">

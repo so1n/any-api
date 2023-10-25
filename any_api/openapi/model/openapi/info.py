@@ -11,6 +11,8 @@ else:
 
 
 class Contact(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#contact-object"""
+
     name: str = Field(default="", description="The identifying name of the contact person/organization.")
     url: AnyUrl = Field(
         default="", description="The URL pointing to the contact information. MUST be in the format of a URL."
@@ -21,12 +23,17 @@ class Contact(BaseModel):
 
 
 class License(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#license-object"""
+
     name: str = Field(description="The license name used for the API.")
     url: str = Field(description="A URL to the license used for the API. MUST be in the format of a URL.")
 
 
 class InfoModel(BaseModel):
-    """open api info column model"""
+    """
+    open api info column model
+    https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#info-object
+    """
 
     title: str = Field("AnyApi", description="The title of the API.")
     description: str = Field(

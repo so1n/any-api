@@ -139,6 +139,14 @@ class PetSuccessfulXmlResponse(responses.XmlResponseModel):
     response_data = Pet
 
 
+class ArrayPetSuccessfulXmlResponse(PetSuccessfulXmlResponse):
+    schema_type = "array"
+
+
+class ArrayPetSuccessfulJsonResponse(PetSuccessfulJsonResponse):
+    schema_type = "array"
+
+
 class OrderSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = Order
@@ -166,13 +174,13 @@ class UserSuccessfulXmlResponse(responses.XmlResponseModel):
 class DefaultSuccessfulJsonResponse(responses.JsonResponseModel):
     description = "Successful operation"
     response_data = User
-    status_code = "default"  # type: ignore
+    status_code = "default"
 
 
 class DefaultSuccessfulXmlResponse(responses.XmlResponseModel):
     description = "Successful operation"
     response_data = User
-    status_code = "default"  # type: ignore
+    status_code = "default"
 
 
 class MyJsonResponse(responses.BaseResponseModel):
@@ -196,7 +204,7 @@ class MyXmlResponse(MyJsonResponse):
 
 
 class DefaultResponse(responses.BaseResponseModel):
-    status_code = "default"  # type: ignore
+    status_code = "default"
     description = "successful operation"
     response_data = None
 
@@ -272,8 +280,12 @@ pet_store_openapi.add_api_model(
             "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
         },
         response_list=[
-            PetSuccessfulJsonResponse,
-            PetSuccessfulXmlResponse,
+            responses.union(
+                PetSuccessfulJsonResponse,
+                PetSuccessfulXmlResponse,
+                description="Successful operation",
+                ignore_attr_check=True,
+            ),
             create_response_type("Invalid ID supplied", 400),
             create_response_type("Pet not found", 404),
             create_response_type("Validation exception", 405),
@@ -301,8 +313,12 @@ pet_store_openapi.add_api_model(
             "form": [requests.RequestModel(media_type_list=["application/x-www-form-urlencoded"], model=Pet)],
         },
         response_list=[
-            PetSuccessfulJsonResponse,
-            PetSuccessfulXmlResponse,
+            responses.union(
+                PetSuccessfulJsonResponse,
+                PetSuccessfulXmlResponse,
+                description="Successful operation",
+                ignore_attr_check=True,
+            ),
             create_response_type("Invalid input", 405),
         ],
         security=petstore_auth_dict,
@@ -336,8 +352,12 @@ pet_store_openapi.add_api_model(
             ]
         },
         response_list=[
-            (PetSuccessfulJsonResponse,),
-            (PetSuccessfulXmlResponse,),
+            responses.union(
+                ArrayPetSuccessfulJsonResponse,
+                ArrayPetSuccessfulXmlResponse,
+                description="Successful operation",
+                ignore_attr_check=True,
+            ),
             create_response_type("Invalid status value", 400),
         ],
         security=petstore_auth_dict,
@@ -367,8 +387,9 @@ pet_store_openapi.add_api_model(
             ]
         },
         response_list=[
-            (PetSuccessfulJsonResponse,),
-            (PetSuccessfulXmlResponse,),
+            # It parses fine without the union func, when they have the same attributes.
+            ArrayPetSuccessfulJsonResponse,
+            ArrayPetSuccessfulXmlResponse,
             create_response_type("Invalid tag value", 400),
         ],
         security=petstore_auth_dict,
@@ -398,6 +419,7 @@ pet_store_openapi.add_api_model(
             ]
         },
         response_list=[
+            # It parses fine without the union func, when they have the same attributes.
             PetSuccessfulJsonResponse,
             PetSuccessfulXmlResponse,
             create_response_type("Invalid Id supplied", 400),

@@ -8,6 +8,8 @@ from any_api.util import pydantic_adapter
 
 
 class OAuthFlowModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#oauth-flow-object"""
+
     authorization_url: Optional[str] = Field(
         default=None,
         alias="authorizationUrl",
@@ -32,6 +34,8 @@ class OAuthFlowModel(BaseModel):
 
 
 class OAuthFlowsModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#oauth-flows-object"""
+
     implicit: Optional[OAuthFlowModel] = Field(default=None, description="Configuration for the OAuth Implicit flow")
     password: Optional[OAuthFlowModel] = Field(
         default=None, description="Configuration for the OAuth Resource Owner Password flow"

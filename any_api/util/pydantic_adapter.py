@@ -75,6 +75,17 @@ if is_v1:
     def get_field_info(field: ModelField) -> FieldInfo:
         return field.field_info
 
+    def field_validator(*fields: str, mode: str = "after", **kwargs) -> Callable[[Any], Any]:  # type: ignore
+        if "pre" not in kwargs:
+            if mode == "before":
+                pre = True
+            elif mode == "after":
+                pre = False
+            else:
+                raise ValueError(f"Not support mode: `{mode}`")
+            kwargs["pre"] = pre
+        return _field_validator(*fields, **kwargs)
+
 else:
     from pydantic import ConfigDict as _ConfigDict
     from pydantic import field_validator as _field_validator
@@ -103,6 +114,8 @@ else:
 
     def get_field_info(field: FieldInfo) -> FieldInfo:
         return field
+
+    field_validator = _field_validator  # type: ignore
 
 
 def model_json_schema(model: Type[BaseModel], definition_key: str = "$defs") -> dict:
@@ -134,10 +147,6 @@ def model_validator(*, mode: str) -> Callable:
             return _model_validator(mode=mode)
     else:
         raise RuntimeError(f"Not support `{mode}`")
-
-
-def field_validator(*args: Any, **kwargs: Any) -> Callable:
-    return _field_validator(*args, **kwargs)
 
 
 def get_extra_by_field_info(field: Any) -> Union[Callable, dict]:
@@ -258,8 +267,12 @@ def remove_any_of(schema_dict: dict) -> None:
     remove schema anyOf key
 
     e.g.:
+        code:
+            class SubDemo(BaseModel):
+                a: int = Field()
+
             class Demo(BaseModel):
-                a: Optional[in] = Field()
+                a: SubDemo
 
         pydantic v1 output:
             {

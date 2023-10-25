@@ -4,19 +4,18 @@ from typing import Optional
 def get_rapidoc_html(
     open_api_json_url: str,
     title: str = "",
-    src_url: Optional[str] = None,
+    src_url: str = "https://unpkg.com/rapidoc/dist/rapidoc-min.js",
 ) -> str:
     """
     rapidoc api doc html: https://rapidocweb.com/api.html
     rapidoc example doc html: https://rapidocweb.com/examples.html
     """
-    if not src_url:
-        src_url = "https://unpkg.com/rapidoc/dist/rapidoc-min.js"
     return f"""
 <!doctype html> <!-- Important: must specify -->
 <html>
 <head>
   <meta charset="utf-8"> <!-- Important: rapi-doc uses utf8 characters -->
+  <title>{title}</title>
   <script type="module" src="{src_url}"></script>
 </head>
 <body>

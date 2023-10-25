@@ -1,16 +1,9 @@
-from typing import Optional
-
-
 def get_swagger_ui_html(
     open_api_json_url: str,
     title: str = "Swagger",
-    swagger_ui_url: Optional[str] = None,
-    swagger_ui_bundle: Optional[str] = None,
+    swagger_ui_url: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css",
+    swagger_ui_bundle: str = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundle.js",
 ) -> str:
-    if not swagger_ui_url:
-        swagger_ui_url = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui.css"
-    if not swagger_ui_bundle:
-        swagger_ui_bundle = "https://cdn.jsdelivr.net/npm/swagger-ui-dist@3/swagger-ui-bundle.js"
     return f"""
     <!DOCTYPE html>
     <html>

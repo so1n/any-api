@@ -1,14 +1,9 @@
-from typing import Optional
-
-
 def get_redoc_html(
     open_api_json_url: str,
-    src_url: Optional[str] = None,
+    src_url: str = "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
     title: str = "ReDoc",
 ) -> str:
     """copy from https://github.com/Redocly/redoc#tldr"""
-    if not src_url:
-        src_url = "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js"
     return f"""
     <!DOCTYPE html>
     <html>

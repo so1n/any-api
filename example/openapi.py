@@ -28,6 +28,7 @@ class MultiFromModel(BaseModel):
 
 class FileModel(BaseModel):
     upload_file: Any = Field(description="uploaded file")
+    orderId: int = Field()
 
 
 class BookModel(BaseModel):
@@ -227,7 +228,7 @@ def multiform_request_openapi_example(openapi: OpenAPI) -> None:
                 "multiform": [
                     requests.RequestModel(
                         media_type_list=["application/x-www-form-urlencoded"],
-                        openapi_serialization={"style": "form", "explode": True},
+                        openapi_serialization=openapi_model.EncodingModel(style="form", explode=True),
                         model=MultiFromModel,
                     )
                 ],

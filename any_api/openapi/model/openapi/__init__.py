@@ -30,6 +30,8 @@ else:
 
 
 class TagModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#tag-object"""
+
     name: str = Field(description="The name of the tag.")
     description: str = Field(
         "", description="A short description for the tag. CommonMark syntax MAY be used for rich text representation."
@@ -40,6 +42,8 @@ class TagModel(BaseModel):
 
 
 class HeaderModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#header-object"""
+
     description: str = Field(
         default="",
         description=(
@@ -96,6 +100,8 @@ class HeaderModel(BaseModel):
 
 
 class ParameterModel(HeaderModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#parameter-object"""
+
     name: str = Field(
         description=(
             "The name of the parameter. Parameter names are case sensitive.\n"
@@ -125,6 +131,8 @@ class ParameterModel(HeaderModel):
 
 
 class EncodingModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#encoding-object"""
+
     content_type: str = Field(
         default="",
         alias="contentType",
@@ -165,6 +173,8 @@ class EncodingModel(BaseModel):
 
 
 class MediaTypeModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#media-type-object"""
+
     schema_: Union[dict, RefModel] = Field(
         default_factory=dict,
         alias="schema",
@@ -201,6 +211,8 @@ class MediaTypeModel(BaseModel):
 
 
 class RequestBodyModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#request-body-object"""
+
     description: str = Field(
         default="",
         description=(
@@ -222,6 +234,8 @@ class RequestBodyModel(BaseModel):
 
 
 class LinkModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#link-object"""
+
     operation_ref: Optional[str] = Field(
         default=None,
         alias="operationRef",
@@ -267,6 +281,8 @@ class LinkModel(BaseModel):
 
 
 class ResponseModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#response-object"""
+
     description: str = Field(
         description=(
             "An optional description for the server variable. "
@@ -299,6 +315,8 @@ class ResponseModel(BaseModel):
 
 
 class OperationModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#operation-object"""
+
     tags: List[str] = Field(
         default_factory=list,
         description=(
@@ -350,7 +368,8 @@ class OperationModel(BaseModel):
         description="The list of possible responses as they are returned from executing this operation.",
     )
     # TODO callback
-    # callbacks: Dict[str, Union[RefModel, ]] = Field(
+    # callbacks: Optional[Dict[str, Union[RefModel, ]]] = Field(
+    #     default=None,
     #     description=(
     #         "A map of possible out-of band callbacks related to the parent operation."
     #         " The key is a unique identifier for the Callback Object."
@@ -392,8 +411,10 @@ class OperationModel(BaseModel):
 
 
 class OpenAPIModel(BaseModel):
+    """https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md#openapi-object"""
+
     openapi: str = Field(
-        "3.0.0",
+        "3.0.3",
         description=(
             "This string MUST be the semantic version number of the OpenAPI Specification version that the OpenAPI"
             " document uses. The openapi field SHOULD be used by tooling specifications and clients to interpret"

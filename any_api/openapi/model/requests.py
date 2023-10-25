@@ -2,6 +2,8 @@ from typing import List, Optional, Tuple, Type, Union
 
 from pydantic import BaseModel, Field
 
+from any_api.openapi.model.openapi import EncodingModel
+
 
 class RequestModel(BaseModel):
     #####################
@@ -26,8 +28,8 @@ class RequestModel(BaseModel):
     # content info #
     ################
     media_type_list: List[str] = Field("", description="OpenAPI media type")
-    openapi_serialization: Optional[dict] = Field(None, description="OpenAPI serialization")
-    model: Union[Type[BaseModel], Tuple[Type[BaseModel]]] = Field(description="request model")
+    openapi_serialization: Optional[EncodingModel] = Field(None, description="OpenAPI serialization")
+    model: Union[Type[BaseModel], Tuple[Type[BaseModel], ...]] = Field(description="request model")
 
     # e.g:
     #   model schema:

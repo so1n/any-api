@@ -1,4 +1,3 @@
-import copy
 import json
 from typing import Any, Callable, Dict, Generic, List, Optional, Tuple, Type, TypeVar
 
@@ -13,38 +12,47 @@ from any_api.util import pydantic_adapter
 __all__ = ["BaseAPI"]
 
 _ModelT = TypeVar("_ModelT", bound=BaseAPIModel)
-_ApiModelT = TypeVar("_ApiModelT")
+_APIModelT = TypeVar("_APIModelT")
 
 
-class BaseAPI(Generic[_ModelT, _ApiModelT]):
+class BaseAPI(Generic[_ModelT, _APIModelT]):
     _api_model: _ModelT
     _schema_key: str = "schemas"
-    _add_tag_dict: dict = {}
+
+    _security_schemes_key: str = "securitySchemes"
 
     def __init__(self) -> None:
-        self._temp_model_list: List[_ApiModelT] = []
+        self._temp_model_list: List[_APIModelT] = []
         self._has_not_load_model: bool = False
 
+        self._add_tag_dict: dict = {}
         self._model_name_map: pydantic_adapter.ModelNameMapType = {}
         self._definitions: dict = {}
         self._model_use_count: Dict[Type[BaseModel], int] = {}
 
-    def add_api_model(self, *api_model_list: _ApiModelT) -> "Self":
+    def add_api_model(self, *api_model_list: _APIModelT) -> "Self":
+        """Add the APIModel to the buffer and identify that there are still Models that have not yet been loaded"""
         for api_model in api_model_list:
             self._temp_model_list.append(api_model)
         self._has_not_load_model = True
         return self
 
     def generate(self) -> None:
+        """
+        1.Read the APIModel from the buffer and load the corresponding definitions data through pydantic.
+        2.Import the APIModel into the BaseAPI
+        """
         # The definition data must be reloaded each time the data is generated
         self._load_definitions_by_api_model()
         for api_model in self._temp_model_list:
             self._add_request_to_api_model(api_model)
 
     def _load_definitions_by_api_model(self) -> None:
+        """Read the APIModel from the buffer and load the corresponding definitions data through pydantic."""
         raise NotImplementedError
 
-    def _add_request_to_api_model(self, api_model: _ApiModelT) -> "Self":
+    def _add_request_to_api_model(self, api_model: _APIModelT) -> "Self":
+        """Import the APIModel into the BaseAPI"""
         raise NotImplementedError
 
     def _add_tag(self, *tag_list: TagModel) -> None:
@@ -59,22 +67,17 @@ class BaseAPI(Generic[_ModelT, _ApiModelT]):
                 )
 
     def _add_security(self, security_model_dict: Dict[str, BaseSecurityModel]) -> None:
-        if "securitySchemes" not in self._api_model.components:
-            new_security_model_dict: Dict[str, BaseSecurityModel] = {}
-            for security_key, security_model in security_model_dict.items():
-                if isinstance(security_model, UserScopesOauth2SecurityModel):
-                    security_model = security_model.model
-                new_security_model_dict[security_key] = security_model
-            self._api_model.components["securitySchemes"] = new_security_model_dict
-        else:
-            for security_key, security_model in security_model_dict.items():
-                if isinstance(security_model, UserScopesOauth2SecurityModel):
-                    security_model = security_model.model
-                if security_key in self._api_model.components["securitySchemes"]:
-                    if self._api_model.components["securitySchemes"][security_key] != security_model:
-                        raise KeyError(f"{security_key} already exists, and the security model is the same")
-                else:
-                    self._api_model.components["securitySchemes"][security_key] = security_model
+        if self._security_schemes_key not in self._api_model.components:
+            self._api_model.components[self._security_schemes_key] = {}
+
+        for security_key, security_model in security_model_dict.items():
+            if isinstance(security_model, UserScopesOauth2SecurityModel):
+                security_model = security_model.model
+            if security_key in self._api_model.components[self._security_schemes_key]:
+                if self._api_model.components[self._security_schemes_key][security_key] != security_model:
+                    raise KeyError(f"{security_key} already exists, and the security model is the same")
+            else:
+                self._api_model.components[self._security_schemes_key][security_key] = security_model
 
     def _replace_pydantic_definitions(self, schema: dict, parent_schema: Optional[dict] = None) -> None:
         """update schemas'definitions to components schemas"""
@@ -126,33 +129,6 @@ class BaseAPI(Generic[_ModelT, _ApiModelT]):
     def _get_in_components_model_schema(self, model: Type[BaseModel]) -> Tuple[str, dict]:
         global_model_name = self._model_name_map[model]
         schema_dict: dict = self._definitions[self._model_name_map[model]]
-        return global_model_name, schema_dict
-
-    def _schema_handle(
-        self,
-        model: Type[BaseModel],
-        enable_move_to_component: bool = True,
-        is_xml_model: bool = False,
-    ) -> Tuple[str, dict]:
-        from any_api.util import by_pydantic
-
-        global_model_name = by_pydantic.get_model_global_name(model)
-
-        if (
-            global_model_name in self._api_model.components[self._schema_key]
-            and enable_move_to_component
-            and not is_xml_model
-        ):
-            return global_model_name, self._api_model.components[self._schema_key][global_model_name]
-        schema_dict: dict = copy.deepcopy(by_pydantic.any_api_model_schema(model))
-        if is_xml_model:
-            self._xml_handler(schema_dict)
-        self._replace_pydantic_definitions(schema_dict)
-        if "definitions" in schema_dict:
-            # fix del schema dict
-            del schema_dict["definitions"]
-        if enable_move_to_component:
-            self._api_model.components[self._schema_key].update({global_model_name: schema_dict})
         return global_model_name, schema_dict
 
     def _get_real_schema_dict(self, schema_dict: dict) -> dict:
