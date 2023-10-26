@@ -142,16 +142,18 @@ def model_dump(model: BaseModel, **kwargs: Any) -> dict:
 def model_validator(**kwargs: Any) -> Callable:
     if is_v1:
         if "mode" in kwargs:
-            if kwargs["mode"] == "before":
+            mode = kwargs.pop("mode")
+            if mode == "before":
                 kwargs["pre"] = True
-            elif kwargs["mode"] == "after":
+            elif mode == "after":
                 kwargs["pre"] = False
             else:
-                raise ValueError(f"Not support mode:{kwargs['mode']}")
+                raise ValueError(f"Not support mode:{mode}")
         return partial(_model_validator, **kwargs)
     else:
         if "pre" in kwargs:
             kwargs["mode"] = "before" if kwargs["pre"] is True else "after"
+            kwargs.pop("pre")
         return _model_validator(**kwargs)
 
 
