@@ -139,14 +139,20 @@ def model_dump(model: BaseModel, **kwargs: Any) -> dict:
         return model.model_dump(**kwargs)
 
 
-def model_validator(*, mode: str) -> Callable:
-    if mode == "before":
-        if is_v1:
-            return partial(_model_validator, pre=True)
-        else:
-            return _model_validator(mode=mode)
+def model_validator(**kwargs: Any) -> Callable:
+    if is_v1:
+        if "mode" in kwargs:
+            if kwargs["mode"] == "before":
+                kwargs["pre"] = True
+            elif kwargs["mode"] == "after":
+                kwargs["pre"] = False
+            else:
+                raise ValueError(f"Not support mode:{kwargs['mode']}")
+        return partial(_model_validator, **kwargs)
     else:
-        raise RuntimeError(f"Not support `{mode}`")
+        if "pre" in kwargs:
+            kwargs["mode"] = "before" if kwargs["pre"] is True else "after"
+        return _model_validator(**kwargs)
 
 
 def get_extra_by_field_info(field: Any) -> Union[Callable, dict]:
