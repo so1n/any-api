@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Set, Type
 
 from pydantic import BaseModel
 from typing_extensions import Literal
@@ -180,6 +180,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
         for media_type in api_request.media_type_list:
             content_dict: Dict[str, openapi_model.MediaTypeModel] = operation_model.request_body.content
             if param_type == "multiform":
+                # Limit the ability to parse data from only one HTTP method
+                multiform_model_set: Set[Type[BaseModel]] = getattr(request_body_model, "multiform_model_set", set())
+                if request_body_model in multiform_model_set:
+                    continue
+                multiform_model_set.add(request_body_model)
+                setattr(request_body_model, "multiform_model_set", multiform_model_set)
                 # multiform not save to components
                 schema_dict = self._get_not_in_components_model_schema(request_body_model)
                 if media_type in content_dict:
@@ -418,12 +424,12 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
         in_components_model_list: List[Type[BaseModel]] = []
         model_use_count: Dict[Type[BaseModel], int] = {}
 
-        def _add_model(model: Type[BaseModel]) -> None:
+        def _add_model(model: Type[BaseModel], cnt: int = 1) -> None:
             in_components_model_list.append(model)
             if model not in model_use_count:
-                model_use_count[model] = 1
+                model_use_count[model] = cnt
             else:
-                model_use_count[model] += 1
+                model_use_count[model] += cnt
 
         for api_model in self._temp_model_list:
             for param_type in HttpParamTypeLiteral.__args__:  # type: ignore
@@ -436,9 +442,9 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
                 for api_request_model in request_model_list:
                     if isinstance(api_request_model.model, tuple):
                         for _model in api_request_model.model:
-                            _add_model(_model)
+                            _add_model(_model, cnt=len(api_model.http_method_list))
                     else:
-                        _add_model(api_request_model.model)
+                        _add_model(api_request_model.model, cnt=len(api_model.http_method_list))
             for resp_model_class in api_model.response_list:
                 resp_model: responses.BaseOpenAPIResponseModel = resp_model_class()
                 for real_resp_model in get_response_list(resp_model):
