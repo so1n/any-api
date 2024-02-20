@@ -6,7 +6,7 @@ authors = ["so1n <qaz6803609@163.com>"]
 license = "Apache-2.0"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 pydantic = ">=1.9.2, <3.0.0, !=2.0.3, !=2.1.0"
 
 [tool.poetry.dev-dependencies]
@@ -14,7 +14,7 @@ pytest = "6.2.5"
 coverage = "5.5"
 pytest-mock = "3.5.1"
 python-multipart = "0.0.5"
-pre-commit = "2.14.0"
+pre-commit = "3.5"
 
 
 [tool.poetry-dynamic-versioning]

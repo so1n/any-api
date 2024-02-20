@@ -1,6 +1,7 @@
 """
 Compatible with V1 and V 2 versions of pydantic
 """
+
 from enum import Enum
 from functools import partial
 from typing import Any, Callable, Dict, Optional, Tuple, Type, Union
@@ -60,13 +61,17 @@ if is_v1:
             )
             definitions.update(m_definitions)
             if model not in model_name_map:
-                raise ValueError(
-                    f"The current model may be a dynamically created model with a non-unique name."
-                    f" module:{model.__module__}, name:{model.__name__}"
-                )
-            model_name = model_name_map[model]
-
-            definitions[model_name] = m_schema
+                # fix generic model name repeat
+                model_name = f"{model.__module__}__{model.__qualname__}__{str(id(model))}".replace(".", "__")
+                model_name_map[model] = model_name
+                definitions[model_name] = m_schema
+                # raise ValueError(
+                #     f"The current model may be a dynamically created model with a non-unique name."
+                #     f" module:{model.__module__}, name:{model.__name__}"
+                # )
+            else:
+                model_name = model_name_map[model]
+                definitions[model_name] = m_schema
         return model_name_map, definitions
 
     def model_fields(model: Type[BaseModel]) -> Dict[str, ModelField]:

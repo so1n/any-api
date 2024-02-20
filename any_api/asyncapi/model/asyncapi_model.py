@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from any_api.openapi.model.openapi import TagModel
 from any_api.openapi.model.openapi.basic import ExternalDocumentationModel
 from any_api.openapi.model.openapi.basic import ServerVariableModel as _ServerVariableModel
-from any_api.openapi.model.openapi.metadata import InfoModel
+from any_api.openapi.model.openapi.info import InfoModel
 
 
 class ServerVariableModel(_ServerVariableModel):

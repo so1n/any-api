@@ -3,6 +3,7 @@ pydantic.Base Model to store Open API objects
 
 refer to: https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.3.md
 """
+
 from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, Field

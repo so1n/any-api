@@ -470,9 +470,11 @@ class OpenAPI(BaseAPI[openapi_model.OpenAPIModel, ApiModel]):
             if http_method in path_dict:
                 raise ValueError(f"{http_method} already exists in {api_model.path}")
             operation_model: openapi_model.OperationModel = openapi_model.OperationModel(
-                operationId=f"{api_model.operation_id}_{http_method}"
-                if len(api_model.http_method_list) > 1
-                else api_model.operation_id,
+                operationId=(
+                    f"{api_model.operation_id}_{http_method}"
+                    if len(api_model.http_method_list) > 1
+                    else api_model.operation_id
+                ),
                 deprecated=api_model.deprecated,
                 description=api_model.description,
                 summary=api_model.summary,

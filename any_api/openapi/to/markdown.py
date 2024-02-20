@@ -89,9 +89,9 @@ class Markdown(object):
             parameter_list.append(
                 {
                     I18n.Name: name_prefix + name,
-                    I18n.Default: f"`{I18n.Required}`"
-                    if name in schema.get("required", [])
-                    else property_dict.get("default", ""),
+                    I18n.Default: (
+                        f"`{I18n.Required}`" if name in schema.get("required", []) else property_dict.get("default", "")
+                    ),
                     I18n.Type: property_dict.get("type", ""),
                     I18n.Desc: property_dict.get("description", "").replace("\n", "<br>"),
                     I18n.Example: property_dict.get("example", ""),
